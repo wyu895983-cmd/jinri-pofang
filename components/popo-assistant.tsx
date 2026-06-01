@@ -4,23 +4,30 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
-import { hasUnreadNotifications } from "@/lib/storage";
+import { hasUnreadNotifications, subscribeToNotifications } from "@/lib/storage";
 
 export function PopoAssistant() {
   const router = useRouter();
   const [hasUnread, setHasUnread] = useState(false);
 
   useEffect(() => {
-    function refresh() {
-      setHasUnread(hasUnreadNotifications());
+    let active = true;
+
+    async function refresh() {
+      const unread = await hasUnreadNotifications();
+      if (active) setHasUnread(unread);
     }
 
-    refresh();
+    void refresh();
+    const unsubscribe = subscribeToNotifications(() => {
+      setHasUnread(true);
+    });
+
     window.addEventListener("pofang:storage-change", refresh);
-    window.addEventListener("storage", refresh);
     return () => {
+      active = false;
+      unsubscribe();
       window.removeEventListener("pofang:storage-change", refresh);
-      window.removeEventListener("storage", refresh);
     };
   }, []);
 

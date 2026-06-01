@@ -63,7 +63,6 @@ const USER_KEY = "jinri-pofang:guest-user";
 const POSTS_KEY = "jinri-pofang:posts";
 const COMMENTS_KEY = "jinri-pofang:comments";
 const FAVORITES_KEY = "jinri-pofang:favorites";
-const NOTIFICATIONS_KEY = "notifications";
 const USER_NAME_KEY = "userName";
 const USER_AVATAR_KEY = "userAvatar";
 export const DEFAULT_AVATARS = ["/avatars/avatar1.webp", "/avatars/avatar2.webp", "/avatars/avatar3.webp", "/avatars/avatar4.webp"];
@@ -71,6 +70,7 @@ const RANDOM_NICKNAMES = ["今日路过", "普通破防人", "地铁发呆员", 
 const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
 const COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
 const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date";
+const NOTIFICATION_COLUMNS = 'id,type,fromUserId,fromUserName,toUserId,postId,postText,commentText,createdAt,read';
 
 const mockNicknames = ["匿名路过", "今天先忍了", "还能再撑会儿", "地铁发呆员", "情绪待机中", "普通熬夜人"];
 
@@ -305,31 +305,70 @@ export async function searchCommunity(query: string) {
   return posts.filter((post) => post.content.toLowerCase().includes(term) || post.nickname.toLowerCase().includes(term));
 }
 
-export function getNotifications() {
-  return readJson<InteractionNotification[]>(NOTIFICATIONS_KEY, []).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+export async function getNotifications() {
+  const user = getCurrentUser();
+  if (!user || !isSupabaseBrowserConfigured()) return [];
+
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("notifications")
+    .select(NOTIFICATION_COLUMNS)
+    .eq("toUserId", user.guest_user_id)
+    .order("createdAt", { ascending: false })
+    .limit(80);
+
+  if (error) return [];
+  return (data ?? []) as InteractionNotification[];
 }
 
-export function hasUnreadNotifications() {
-  return getNotifications().some((notification) => !notification.read);
+export async function hasUnreadNotifications() {
+  const user = getCurrentUser();
+  if (!user || !isSupabaseBrowserConfigured()) return false;
+
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id")
+    .eq("toUserId", user.guest_user_id)
+    .eq("read", false)
+    .limit(1);
+
+  if (error) return false;
+  return Boolean(data?.length);
 }
 
-export function markNotificationsRead() {
-  const notifications = getNotifications();
-  if (!notifications.some((notification) => !notification.read)) return notifications;
-  const next = notifications.map((notification) => ({ ...notification, read: true }));
-  writeJson(NOTIFICATIONS_KEY, next);
-  return next;
+export async function markNotificationsRead() {
+  const user = getCurrentUser();
+  if (!user || !isSupabaseBrowserConfigured()) return [];
+
+  const supabase = createSupabaseBrowserClient();
+  await supabase.from("notifications").update({ read: true }).eq("toUserId", user.guest_user_id).eq("read", false);
+  window.dispatchEvent(new CustomEvent("pofang:storage-change"));
+  return getNotifications();
 }
 
-function addInteractionNotification(input: Omit<InteractionNotification, "id" | "createdAt" | "read">) {
-  const notification: InteractionNotification = {
-    ...input,
-    id: uuid(),
-    createdAt: nowIso(),
-    read: false
+export function subscribeToNotifications(onInsert: () => void) {
+  const user = getCurrentUser();
+  if (!user || !isSupabaseBrowserConfigured()) return () => undefined;
+
+  const supabase = createSupabaseBrowserClient();
+  const channel = supabase
+    .channel(`notifications:${user.guest_user_id}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `toUserId=eq.${user.guest_user_id}`
+      },
+      onInsert
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
   };
-  writeJson(NOTIFICATIONS_KEY, [notification, ...getNotifications()].slice(0, 80));
-  return notification;
 }
 
 export async function enterWithNickname(nickname: string, passphrase = "") {
@@ -422,8 +461,6 @@ export async function likePost(postId: string, reaction = "like") {
   const user = getCurrentUser();
   if (!user) throw new Error("取个名字才能留下你的破防痕迹。");
 
-  const targetPost = await getPost(postId);
-
   if (isSupabaseBrowserConfigured() && !postId.startsWith("mock-")) {
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.rpc("react_to_post", {
@@ -433,9 +470,6 @@ export async function likePost(postId: string, reaction = "like") {
     });
     if (error) throw error;
     await refreshCurrentUser();
-    if (targetPost?.user_id === user.guest_user_id) {
-      addInteractionNotification({ type: "like", postId, postText: targetPost.content });
-    }
     return true;
   }
 
@@ -453,9 +487,6 @@ export async function likePost(postId: string, reaction = "like") {
       };
     })
   );
-  if (liked && targetPost?.user_id === user.guest_user_id) {
-    addInteractionNotification({ type: "like", postId, postText: targetPost.content });
-  }
   return liked;
 }
 
@@ -487,8 +518,6 @@ export async function getComments(postId: string) {
 export async function createComment(postId: string, content: string) {
   const user = getCurrentUser();
   if (!user) throw new Error("取个名字才能留下你的破防痕迹。");
-  const targetPost = await getPost(postId);
-
   if (isSupabaseBrowserConfigured() && !postId.startsWith("mock-")) {
     const supabase = createSupabaseBrowserClient();
     const { data, error } = await supabase.rpc("create_comment", {
@@ -499,9 +528,6 @@ export async function createComment(postId: string, content: string) {
     });
     if (error) throw error;
     await refreshCurrentUser();
-    if (targetPost?.user_id === user.guest_user_id) {
-      addInteractionNotification({ type: "comment", postId, postText: targetPost.content, commentText: content.trim() });
-    }
     return toComment({ ...data, nickname: user.nickname, avatar_url: user.avatar_url }, []);
   }
 
@@ -521,9 +547,6 @@ export async function createComment(postId: string, content: string) {
   writeJson(COMMENTS_KEY, [...comments, comment]);
   writeJson(POSTS_KEY, posts);
   saveUser({ ...user, exp: user.exp + 1 });
-  if (targetPost?.user_id === user.guest_user_id) {
-    addInteractionNotification({ type: "comment", postId, postText: targetPost.content, commentText: content.trim() });
-  }
   return comment;
 }
 

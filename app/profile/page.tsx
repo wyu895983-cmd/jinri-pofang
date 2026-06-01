@@ -40,14 +40,17 @@ export default function ProfilePage() {
     setNickname(current?.nickname ?? "");
     setAvatar(current?.avatar_url ?? "");
     setFavoriteCount(getFavorites().length);
-    setNotifications(getNotifications());
+    setNotifications(await getNotifications());
     setPosts(current ? (await getPosts()).filter((post) => post.user_id === current.guest_user_id) : []);
   }
 
   useEffect(() => {
-    refresh();
-    const notifications = markNotificationsRead();
-    setNotifications(notifications);
+    async function load() {
+      await refresh();
+      setNotifications(await markNotificationsRead());
+    }
+
+    void load();
     window.addEventListener("pofang:storage-change", refresh);
     return () => window.removeEventListener("pofang:storage-change", refresh);
   }, []);

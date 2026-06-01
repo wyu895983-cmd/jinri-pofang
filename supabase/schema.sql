@@ -75,10 +75,24 @@ create table if not exists public.feedbacks (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  type text not null check (type in ('like', 'comment')),
+  "fromUserId" uuid not null references public.profiles(id) on delete cascade,
+  "fromUserName" text not null,
+  "toUserId" uuid not null references public.profiles(id) on delete cascade,
+  "postId" uuid not null references public.posts(id) on delete cascade,
+  "postText" text not null,
+  "commentText" text,
+  "createdAt" timestamptz not null default now(),
+  read boolean not null default false
+);
+
 create index if not exists posts_created_at_idx on public.posts(created_at desc);
 create index if not exists posts_user_id_idx on public.posts(user_id);
 create index if not exists comments_post_id_created_at_idx on public.comments(post_id, created_at asc);
 create index if not exists profiles_exp_idx on public.profiles(exp desc);
+create index if not exists notifications_to_user_read_created_idx on public.notifications("toUserId", read, "createdAt" desc);
 
 alter table public.profiles enable row level security;
 alter table public.posts enable row level security;
@@ -86,6 +100,7 @@ alter table public.comments enable row level security;
 alter table public.reactions enable row level security;
 alter table public.exp_logs enable row level security;
 alter table public.feedbacks enable row level security;
+alter table public.notifications enable row level security;
 
 drop policy if exists "profiles are readable" on public.profiles;
 create policy "profiles are readable" on public.profiles for select using (true);
@@ -101,6 +116,15 @@ create policy "reactions are readable" on public.reactions for select using (tru
 
 drop policy if exists "anyone can create feedback" on public.feedbacks;
 create policy "anyone can create feedback" on public.feedbacks for insert with check (true);
+
+drop policy if exists "notifications are readable" on public.notifications;
+create policy "notifications are readable" on public.notifications for select using (true);
+
+drop policy if exists "notifications are writable by app" on public.notifications;
+create policy "notifications are writable by app" on public.notifications for insert with check (true);
+
+drop policy if exists "notifications can be marked read" on public.notifications;
+create policy "notifications can be marked read" on public.notifications for update using (true) with check (true);
 
 create or replace function public.add_exp(
   target_user uuid,
@@ -291,6 +315,12 @@ begin
   perform public.add_exp(profile_uuid, 'comment_create', 1, 10, row_comment.id, null);
   if post_owner <> profile_uuid then
     perform public.add_exp(post_owner, 'received_comment', 1, 20, row_comment.id, null);
+
+    insert into public.notifications(type, "fromUserId", "fromUserName", "toUserId", "postId", "postText", "commentText")
+    select 'comment', profile_uuid, from_profile.nickname, post_owner, post_uuid, p.content, row_comment.content
+    from public.posts p
+    join public.profiles from_profile on from_profile.id = profile_uuid
+    where p.id = post_uuid;
   end if;
 
   return row_comment;
@@ -336,6 +366,14 @@ begin
   returning reaction_count into new_count;
 
   update public.profiles set total_likes = total_likes + 1, updated_at = now() where id = owner_id;
+
+  if owner_id <> profile_uuid then
+    insert into public.notifications(type, "fromUserId", "fromUserName", "toUserId", "postId", "postText")
+    select 'like', profile_uuid, from_profile.nickname, owner_id, post_uuid, p.content
+    from public.posts p
+    join public.profiles from_profile on from_profile.id = profile_uuid
+    where p.id = post_uuid;
+  end if;
 
   foreach milestone in array array[5, 10, 20, 50, 100, 500]
   loop
@@ -432,8 +470,9 @@ select
 from public.comments c
 join public.profiles pr on pr.id = c.user_id;
 
-grant select on public.profiles, public.posts, public.comments, public.reactions, public.post_feed, public.comment_feed to anon, authenticated;
+grant select on public.profiles, public.posts, public.comments, public.reactions, public.post_feed, public.comment_feed, public.notifications to anon, authenticated;
 grant insert on public.feedbacks to anon, authenticated;
+grant update(read) on public.notifications to anon, authenticated;
 grant execute on function public.login_or_create_profile(text, text) to anon, authenticated;
 grant execute on function public.ensure_daily_profile(uuid) to anon, authenticated;
 grant execute on function public.create_post(uuid, text, text) to anon, authenticated;
@@ -442,3 +481,18 @@ grant execute on function public.react_to_post(uuid, uuid, text) to anon, authen
 grant execute on function public.react_to_comment(uuid, uuid) to anon, authenticated;
 
 revoke execute on function public.add_exp(uuid, text, integer, integer, uuid, text) from public, anon, authenticated;
+
+alter table public.notifications replica identity full;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'notifications'
+  ) then
+    alter publication supabase_realtime add table public.notifications;
+  end if;
+end;
+$$;
