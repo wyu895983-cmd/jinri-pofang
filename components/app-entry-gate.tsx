@@ -14,8 +14,28 @@ export function AppEntryGate() {
   const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setShowSplash(false), 1200);
-    return () => window.clearTimeout(timer);
+    const startedAt = window.performance.now();
+    let finished = false;
+
+    function finishSplash() {
+      if (finished) return;
+      finished = true;
+      const elapsed = window.performance.now() - startedAt;
+      window.setTimeout(() => setShowSplash(false), Math.max(0, 300 - elapsed));
+    }
+
+    const maxTimer = window.setTimeout(finishSplash, 800);
+
+    if (document.readyState === "complete") {
+      finishSplash();
+    } else {
+      window.addEventListener("load", finishSplash, { once: true });
+    }
+
+    return () => {
+      window.clearTimeout(maxTimer);
+      window.removeEventListener("load", finishSplash);
+    };
   }, []);
 
   useEffect(() => {

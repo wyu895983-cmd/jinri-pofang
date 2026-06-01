@@ -5,17 +5,7 @@ export type Sticker = {
   token: string;
 };
 
-const stickerFiles = [
-  "2.png",
-  "3.png",
-  "4.png",
-  "6.png",
-  "8.png",
-  "9.png",
-  "12.png",
-  "233.png",
-  "ChatGPT Image 2026年6月1日 07_56_31.png"
-];
+const stickerFiles = ["p1.webp", "p2.webp", "p3.webp", "p4.webp", "p5.webp", "p6.webp", "p7.webp", "p8.webp", "p9.webp"];
 
 const stickerBase = "/stickers";
 
@@ -24,7 +14,7 @@ export const popoStickers: Sticker[] = stickerFiles.map((file, index) => {
   return {
     id,
     name: `PoPo ${index + 1}`,
-    src: encodeURI(`${stickerBase}/${file}`),
+    src: `${stickerBase}/${file}`,
     token: `[popo:${id}]`
   };
 });

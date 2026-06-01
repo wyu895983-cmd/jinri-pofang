@@ -31,7 +31,9 @@ export function RichContent({ content, className }: { content: string; className
           <img
             alt={sticker.name}
             className="mx-1 inline-block h-14 w-14 translate-y-3 object-contain"
+            decoding="async"
             key={index}
+            loading="lazy"
             src={sticker.src}
           />
         );

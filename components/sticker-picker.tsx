@@ -43,7 +43,7 @@ export function StickerPicker() {
               title={sticker.name}
               type="button"
             >
-              <img alt={sticker.name} className="h-full w-full object-contain" src={sticker.src} />
+              <img alt={sticker.name} className="h-full w-full object-contain" decoding="async" loading="lazy" src={sticker.src} />
             </button>
           ))}
         </div>

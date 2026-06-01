@@ -47,6 +47,9 @@ export type LocalComment = {
 const USER_KEY = "jinri-pofang:guest-user";
 const POSTS_KEY = "jinri-pofang:posts";
 const COMMENTS_KEY = "jinri-pofang:comments";
+const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
+const COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
+const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date";
 
 const mockNicknames = ["匿名路过", "今天先忍了", "还能再撑会儿", "地铁发呆员", "情绪待机中", "普通熬夜人"];
 
@@ -203,7 +206,7 @@ export async function getPosts() {
     try {
       const supabase = createSupabaseBrowserClient();
       const [{ data: rows, error }, { data: reactions }] = await Promise.all([
-        supabase.from("post_feed").select("*").order("created_at", { ascending: false }).limit(80),
+        supabase.from("post_feed").select(POST_FEED_COLUMNS).order("created_at", { ascending: false }).limit(80),
         user
           ? supabase.from("reactions").select("post_id").eq("user_id", user.guest_user_id).not("post_id", "is", null)
           : Promise.resolve({ data: [] })
@@ -299,7 +302,7 @@ export async function getComments(postId: string) {
     try {
       const supabase = createSupabaseBrowserClient();
       const [{ data: rows, error }, { data: reactions }] = await Promise.all([
-        supabase.from("comment_feed").select("*").eq("post_id", postId).order("created_at", { ascending: true }),
+        supabase.from("comment_feed").select(COMMENT_FEED_COLUMNS).eq("post_id", postId).order("created_at", { ascending: true }),
         user
           ? supabase.from("reactions").select("comment_id").eq("user_id", user.guest_user_id).not("comment_id", "is", null)
           : Promise.resolve({ data: [] })
@@ -387,9 +390,9 @@ export async function getLeaderboard() {
     try {
       const supabase = createSupabaseBrowserClient();
       const [{ data: liked }, { data: commented }, { data: users }] = await Promise.all([
-        supabase.from("post_feed").select("*").order("reaction_count", { ascending: false }).limit(5),
-        supabase.from("post_feed").select("*").order("comment_count", { ascending: false }).limit(5),
-        supabase.from("profiles").select("id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date").order("exp", { ascending: false }).limit(10)
+        supabase.from("post_feed").select(POST_FEED_COLUMNS).order("reaction_count", { ascending: false }).limit(5),
+        supabase.from("post_feed").select(POST_FEED_COLUMNS).order("comment_count", { ascending: false }).limit(5),
+        supabase.from("profiles").select(PROFILE_COLUMNS).order("exp", { ascending: false }).limit(10)
       ]);
       return {
         topLiked: (liked ?? []).map((row: any) => toPost(row)),
@@ -413,6 +416,6 @@ export async function refreshCurrentUser() {
   const user = getCurrentUser();
   if (!user || !isSupabaseBrowserConfigured()) return user;
   const supabase = createSupabaseBrowserClient();
-  const { data } = await supabase.from("profiles").select("*").eq("id", user.guest_user_id).single();
+  const { data } = await supabase.from("profiles").select(PROFILE_COLUMNS).eq("id", user.guest_user_id).single();
   return data ? saveUser(toUser(data)) : user;
 }
