@@ -1,10 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
+import { Bookmark, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DynamicHeadline } from "@/components/dynamic-headline";
+import { FeedSkeleton } from "@/components/skeleton";
 import { LocalPostCard } from "@/components/local-post-card";
-import { getCurrentUser, getPosts, likePost, LocalPost } from "@/lib/storage";
+import { Toast } from "@/components/toast";
+import { getCurrentUser, getFavorites, getPosts, isFavorite, likePost, LocalPost, toggleFavorite } from "@/lib/storage";
 
 const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
 const NETWORK_TOAST = "网络开小差了，稍后再试";
@@ -12,6 +16,8 @@ const LIKE_LOCK_MS = 500;
 
 export default function HomePage() {
   const [posts, setPosts] = useState<LocalPost[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [pendingPostIds, setPendingPostIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState("");
@@ -20,6 +26,8 @@ export default function HomePage() {
     const user = getCurrentUser();
     setUserId(user?.guest_user_id ?? null);
     setPosts(await getPosts());
+    setFavoriteIds(new Set(getFavorites().map((favorite) => favorite.post_id)));
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -36,7 +44,6 @@ export default function HomePage() {
       window.location.href = loginPrompt;
       return;
     }
-
     if (pendingPostIds.has(postId)) return;
 
     const previousPosts = posts;
@@ -49,7 +56,7 @@ export default function HomePage() {
       await Promise.all([likePost(postId, reaction), wait(LIKE_LOCK_MS)]);
     } catch {
       setPosts(previousPosts);
-      showNetworkToast(setToast);
+      showToast(setToast, NETWORK_TOAST);
     } finally {
       setPendingPostIds((value) => {
         const next = new Set(value);
@@ -59,10 +66,29 @@ export default function HomePage() {
     }
   }
 
+  function handleFavorite(postId: string) {
+    try {
+      toggleFavorite(postId);
+      setFavoriteIds(new Set(getFavorites().map((favorite) => favorite.post_id)));
+    } catch {
+      showToast(setToast, "收藏失败，稍后再试");
+    }
+  }
+
   return (
     <div className="space-y-5">
       <section>
-        <p className="mb-2 text-label text-acid">今日情绪广场</p>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-label text-acid">今日情绪广场</p>
+          <div className="flex gap-2">
+            <Link className="grid h-9 w-9 place-items-center rounded-2xl border border-line bg-white/[0.04] text-muted" href="/search" aria-label="搜索">
+              <Search className="h-4 w-4" />
+            </Link>
+            <Link className="grid h-9 w-9 place-items-center rounded-2xl border border-line bg-white/[0.04] text-muted" href="/favorites" aria-label="收藏">
+              <Bookmark className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
         <DynamicHeadline />
       </section>
 
@@ -83,21 +109,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="space-y-4">
-        {posts.map((post, index) => (
-          <LocalPostCard
-            disabled={pendingPostIds.has(post.id)}
-            index={index}
-            key={post.id}
-            liked={Boolean(userId && post.liked_by.includes(userId))}
-            onLike={() => handleLike(post.id)}
-            onEmotion={(reaction) => handleLike(post.id, reaction)}
-            post={post}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <FeedSkeleton />
+      ) : (
+        <div className="space-y-4">
+          {posts.map((post, index) => (
+            <LocalPostCard
+              disabled={pendingPostIds.has(post.id)}
+              favorited={favoriteIds.has(post.id) || isFavorite(post.id)}
+              index={index}
+              key={post.id}
+              liked={Boolean(userId && post.liked_by.includes(userId))}
+              onFavorite={() => handleFavorite(post.id)}
+              onLike={() => handleLike(post.id)}
+              onEmotion={(reaction) => handleLike(post.id, reaction)}
+              post={post}
+            />
+          ))}
+        </div>
+      )}
 
-      {toast ? <p className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full border border-acid/30 bg-ink/90 px-4 py-2 text-meta text-acid shadow-acid">{toast}</p> : null}
+      <Toast message={toast} />
     </div>
   );
 }
@@ -114,8 +146,8 @@ function applyOptimisticPostReaction(posts: LocalPost[], postId: string, userId:
   });
 }
 
-function showNetworkToast(setToast: (value: string) => void) {
-  setToast(NETWORK_TOAST);
+function showToast(setToast: (value: string) => void, message: string) {
+  setToast(message);
   window.setTimeout(() => setToast(""), 1800);
 }
 

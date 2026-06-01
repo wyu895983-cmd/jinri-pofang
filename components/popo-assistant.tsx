@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
@@ -17,28 +17,43 @@ export function PopoAssistant() {
   const [quote, setQuote] = useState("");
   const [open, setOpen] = useState(false);
 
+  function close() {
+    setOpen(false);
+    setQuote("");
+  }
+
   function talk() {
-    setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
-    setOpen(true);
+    setOpen((current) => {
+      if (current) {
+        setQuote("");
+        return false;
+      }
+
+      setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+      return true;
+    });
   }
 
   return (
     <div className="fixed bottom-24 right-[max(14px,calc((100vw-430px)/2+14px))] z-40">
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            className="mb-3 max-w-[220px] rounded-card border border-acid/30 bg-ink/92 p-3 text-meta text-zinc-100 shadow-acid backdrop-blur"
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-          >
-            {quote}
-            <Link className="mt-2 block text-label text-acid" href="/feedback">
-              去反馈
-            </Link>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      {open ? (
+        <motion.div
+          className="mb-3 max-w-[220px] cursor-pointer rounded-card border border-acid/30 bg-ink/92 p-3 text-meta text-zinc-100 shadow-acid backdrop-blur"
+          initial={{ opacity: 0, y: 8, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          onClick={close}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") close();
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          {quote}
+          <Link className="mt-2 block text-label text-acid" href="/feedback" onClick={(event) => event.stopPropagation()}>
+            去反馈
+          </Link>
+        </motion.div>
+      ) : null}
 
       <motion.button
         className="grid h-14 w-14 place-items-center rounded-2xl border border-acid/40 bg-acid/10 shadow-acid backdrop-blur"

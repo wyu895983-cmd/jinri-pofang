@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
+import { Bookmark } from "lucide-react";
 import { useState } from "react";
 import { RichContent } from "@/components/rich-content";
 import type { LocalPost } from "@/lib/storage";
@@ -24,16 +25,20 @@ export function LocalPostCard({
   post,
   index = 0,
   liked,
+  favorited = false,
   onLike,
   onEmotion,
+  onFavorite,
   disabled = false,
   href = `/post/${post.id}`
 }: {
   post: LocalPost;
   index?: number;
   liked: boolean;
+  favorited?: boolean;
   onLike: () => void;
   onEmotion?: (reaction: "laugh" | "same" | "broken" | "fire") => void;
+  onFavorite?: () => void;
   disabled?: boolean;
   href?: string;
 }) {
@@ -58,11 +63,29 @@ export function LocalPostCard({
     >
       {post.reaction_count >= 200 ? <span className="hot-shine" /> : null}
       <div className="mb-4 flex items-start justify-between gap-3">
-        <Link href={post.is_mock ? "#" : "/profile"} className="min-w-0">
-          <p className="truncate text-[15px] font-semibold leading-5 text-white">{post.nickname}</p>
-          <p className="mt-2 text-meta text-muted">{formatLocalTime(post.created_at)}</p>
+        <Link href={post.is_mock ? "#" : "/profile"} className="flex min-w-0 items-center gap-3">
+          <img alt="" className="h-11 w-11 shrink-0 rounded-2xl border border-acid/25 bg-acid/10 object-contain p-1" src={post.avatar_url} />
+          <span className="min-w-0">
+            <span className="block truncate text-[15px] font-semibold leading-5 text-white">{post.nickname}</span>
+            <span className="mt-2 block text-meta text-muted">{formatLocalTime(post.created_at)}</span>
+          </span>
         </Link>
-        <LikeBadge count={post.reaction_count} disabled={disabled} liked={liked} onClick={onLike} />
+        <div className="flex shrink-0 items-center gap-2">
+          {onFavorite ? (
+            <motion.button
+              className={`grid h-8 w-8 place-items-center rounded-[12px] border ${
+                favorited ? "border-acid/70 bg-acid/20 text-acid shadow-acid" : "border-line text-muted"
+              }`}
+              onClick={onFavorite}
+              type="button"
+              whileTap={{ scale: 0.9 }}
+              aria-label={favorited ? "取消收藏" : "收藏"}
+            >
+              <Bookmark className="h-4 w-4" fill={favorited ? "currentColor" : "none"} />
+            </motion.button>
+          ) : null}
+          <LikeBadge count={post.reaction_count} disabled={disabled} liked={liked} onClick={onLike} />
+        </div>
       </div>
 
       <Link href={href}>
@@ -77,13 +100,7 @@ export function LocalPostCard({
 
       <div className="mt-5 grid grid-cols-2 gap-2">
         {emotions.map((emotion) => (
-          <EmotionButton
-            active={activeEmotion === emotion.value}
-            disabled={disabled}
-            key={emotion.label}
-            emotion={emotion}
-            onReact={() => toggleEmotion(emotion)}
-          />
+          <EmotionButton active={activeEmotion === emotion.value} disabled={disabled} key={emotion.value} emotion={emotion} onReact={() => toggleEmotion(emotion)} />
         ))}
         <Link className="app-button col-span-2 flex items-center justify-center text-muted hover:bg-white/5 hover:text-white" href={`/post/${post.id}`}>
           {post.comment_count} 条评论
@@ -96,7 +113,7 @@ export function LocalPostCard({
 function LikeBadge({ count, disabled, liked, onClick }: { count: number; disabled?: boolean; liked: boolean; onClick: () => void }) {
   const [burst, setBurst] = useState(0);
   const [delta, setDelta] = useState<"+1" | "-1">("+1");
-  const particles = ["✦", "怨", "✧", "Po", "✦"];
+  const particles = ["✦", "怨", "✦", "Po", "✦"];
 
   function click() {
     setDelta(liked ? "-1" : "+1");
@@ -142,12 +159,7 @@ function LikeBadge({ count, disabled, liked, onClick }: { count: number; disable
               className="pointer-events-none absolute left-1/2 top-1/2 text-[11px] font-semibold text-acid"
               key={`${burst}-${particle}-${index}`}
               initial={{ opacity: 0, x: 0, y: 0, scale: 0.65 }}
-              animate={{
-                opacity: [0, 1, 0],
-                x: (index - 2) * 13,
-                y: -18 - (index % 2) * 12,
-                scale: [0.65, 1.15, 0.75]
-              }}
+              animate={{ opacity: [0, 1, 0], x: (index - 2) * 13, y: -18 - (index % 2) * 12, scale: [0.65, 1.15, 0.75] }}
               transition={{ duration: 0.55, ease: "easeOut" }}
             >
               {particle}
@@ -158,17 +170,7 @@ function LikeBadge({ count, disabled, liked, onClick }: { count: number; disable
   );
 }
 
-function EmotionButton({
-  active,
-  disabled,
-  emotion,
-  onReact
-}: {
-  active: boolean;
-  disabled?: boolean;
-  emotion: Emotion;
-  onReact?: () => void;
-}) {
+function EmotionButton({ active, disabled, emotion, onReact }: { active: boolean; disabled?: boolean; emotion: Emotion; onReact?: () => void }) {
   const [burst, setBurst] = useState(0);
   const particles = Array.from({ length: 8 });
 
@@ -193,16 +195,7 @@ function EmotionButton({
               className="absolute left-1/2 top-1/2 opacity-0"
               key={`${burst}-${index}`}
               initial={{ opacity: 0, x: 0, y: 0, scale: 0.7 }}
-              animate={
-                burst
-                  ? {
-                      opacity: [0, 1, 0],
-                      x: [0, (index - 3.5) * 9],
-                      y: [0, -28 - (index % 3) * 10],
-                      scale: [0.7, 1.2, 0.7]
-                    }
-                  : undefined
-              }
+              animate={burst ? { opacity: [0, 1, 0], x: [0, (index - 3.5) * 9], y: [0, -28 - (index % 3) * 10], scale: [0.7, 1.2, 0.7] } : undefined}
               transition={{ duration: 0.6 }}
             >
               {emotion.emoji}

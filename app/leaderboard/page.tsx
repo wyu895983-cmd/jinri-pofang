@@ -2,21 +2,29 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Trophy } from "lucide-react";
+import { FeedSkeleton } from "@/components/skeleton";
 import { getLevelInfo } from "@/lib/levels";
-import { getLeaderboard, LocalPost, LocalUser } from "@/lib/storage";
+import { getLeaderboard, getPosts, LocalPost, LocalUser } from "@/lib/storage";
+
+type HotTab = "today" | "week" | "all";
 
 export default function LeaderboardPage() {
   const [topLiked, setTopLiked] = useState<LocalPost[]>([]);
   const [topCommented, setTopCommented] = useState<LocalPost[]>([]);
   const [topUsers, setTopUsers] = useState<LocalUser[]>([]);
+  const [allPosts, setAllPosts] = useState<LocalPost[]>([]);
+  const [tab, setTab] = useState<HotTab>("today");
+  const [loading, setLoading] = useState(true);
 
   async function refresh() {
-    const data = await getLeaderboard();
+    const [data, posts] = await Promise.all([getLeaderboard(), getPosts()]);
     setTopLiked(data.topLiked);
     setTopCommented(data.topCommented);
     setTopUsers(data.topUsers);
+    setAllPosts(posts);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -25,6 +33,8 @@ export default function LeaderboardPage() {
     return () => window.removeEventListener("pofang:storage-change", refresh);
   }, []);
 
+  const hotPosts = useMemo(() => rankByHot(filterByTab(allPosts, tab)).slice(0, 8), [allPosts, tab]);
+
   return (
     <div className="space-y-5">
       <div>
@@ -32,13 +42,33 @@ export default function LeaderboardPage() {
         <h1 className="text-h1 text-white">今天谁在互联网大杀四方</h1>
       </div>
 
+      <section className="glass rounded-card p-5">
+        <div className="mb-4 grid grid-cols-3 gap-2">
+          {[
+            ["today", "今日热门"],
+            ["week", "本周热门"],
+            ["all", "总热门"]
+          ].map(([value, label]) => (
+            <button
+              className={`app-button border ${tab === value ? "border-acid/70 bg-acid/15 text-acid shadow-acid" : "border-line bg-white/[0.04] text-muted"}`}
+              key={value}
+              onClick={() => setTab(value as HotTab)}
+              type="button"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {loading ? <FeedSkeleton /> : <RankPanel items={hotPosts} valueKey="score" suffix="热度" />}
+      </section>
+
       <RankPanel title="今日神吐槽" items={topLiked} valueKey="reaction_count" suffix="赞" />
       <RankPanel title="今日破防王" items={topCommented} valueKey="comment_count" suffix="评" />
 
       <section className="glass rounded-card p-5">
         <h2 className="mb-4 flex items-center gap-2 text-h2 text-white">
           <Trophy className="icon-18 text-acid" />
-          我的成长榜
+          成长榜
         </h2>
         <div className="space-y-3">
           {topUsers.length ? (
@@ -46,13 +76,16 @@ export default function LeaderboardPage() {
               const level = getLevelInfo(profile.exp);
               return (
                 <Link className="flex items-center justify-between rounded-card bg-white/[0.04] p-4 hover:bg-white/[0.07]" href="/profile" key={profile.guest_user_id}>
-                  <div>
-                    <p className="text-[15px] font-semibold leading-5 text-white">
-                      #{index + 1} {profile.nickname}
-                    </p>
-                    <p className="mt-2 text-meta text-muted">
-                      Lv{level.level} · {level.title}
-                    </p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <img alt="" className="h-10 w-10 rounded-2xl border border-acid/20 bg-acid/10 object-contain p-1" src={profile.avatar_url} />
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-semibold leading-5 text-white">
+                        #{index + 1} {profile.nickname}
+                      </p>
+                      <p className="mt-2 text-meta text-muted">
+                        Lv{level.level} · {level.title}
+                      </p>
+                    </div>
                   </div>
                   <span className="text-label text-acid">{profile.exp}</span>
                 </Link>
@@ -73,34 +106,29 @@ function RankPanel({
   valueKey,
   suffix
 }: {
-  title: string;
-  items: LocalPost[];
-  valueKey: "reaction_count" | "comment_count";
+  title?: string;
+  items: Array<LocalPost & { score?: number }>;
+  valueKey: "reaction_count" | "comment_count" | "score";
   suffix: string;
 }) {
   return (
-    <section className="glass rounded-card p-5">
-      <h2 className="mb-4 text-h2 text-white">{title}</h2>
+    <section className={title ? "glass rounded-card p-5" : ""}>
+      {title ? <h2 className="mb-4 text-h2 text-white">{title}</h2> : null}
       <div className="space-y-3">
         {items.length ? (
           items.map((post, index) => (
-            <motion.div
-              initial={{ opacity: 0, y: 16, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              key={post.id}
-            >
+            <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.3, delay: index * 0.05 }} key={post.id}>
               <Link className={`block rounded-card border p-4 hover:bg-white/[0.07] ${rankClass(index)}`} href={`/post/${post.id}`}>
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="text-[15px] font-semibold leading-5 text-white">
-                  {rankIcon(index)} {post.nickname}
-                </p>
-                <span className="text-label text-acid">
-                  {post[valueKey]} {suffix}
-                </span>
-              </div>
-              <p className="line-clamp-2 text-meta text-muted">{post.content}</p>
-            </Link>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="truncate text-[15px] font-semibold leading-5 text-white">
+                    {rankIcon(index)} {post.nickname}
+                  </p>
+                  <span className="shrink-0 text-label text-acid">
+                    {post[valueKey] ?? 0} {suffix}
+                  </span>
+                </div>
+                <p className="line-clamp-2 text-meta text-muted">{post.content}</p>
+              </Link>
             </motion.div>
           ))
         ) : (
@@ -109,6 +137,18 @@ function RankPanel({
       </div>
     </section>
   );
+}
+
+function filterByTab(posts: LocalPost[], tab: HotTab) {
+  const now = Date.now();
+  const maxAge = tab === "today" ? 24 * 60 * 60 * 1000 : tab === "week" ? 7 * 24 * 60 * 60 * 1000 : Infinity;
+  return posts.filter((post) => now - Date.parse(post.created_at) <= maxAge);
+}
+
+function rankByHot(posts: LocalPost[]) {
+  return [...posts]
+    .map((post) => ({ ...post, score: post.reaction_count * 2 + post.comment_count * 3 }))
+    .sort((a, b) => b.score - a.score);
 }
 
 function rankIcon(index: number) {

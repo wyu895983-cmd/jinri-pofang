@@ -16,6 +16,11 @@ export type LocalUser = {
   total_likes: number;
 };
 
+export type FavoriteRecord = {
+  post_id: string;
+  created_at: string;
+};
+
 export type LocalPost = {
   id: string;
   user_id: string;
@@ -47,6 +52,9 @@ export type LocalComment = {
 const USER_KEY = "jinri-pofang:guest-user";
 const POSTS_KEY = "jinri-pofang:posts";
 const COMMENTS_KEY = "jinri-pofang:comments";
+const FAVORITES_KEY = "jinri-pofang:favorites";
+export const DEFAULT_AVATARS = ["/avatars/avatar1.webp", "/avatars/avatar2.webp", "/avatars/avatar3.webp", "/avatars/avatar4.webp"];
+const RANDOM_NICKNAMES = ["今日路过", "普通破防人", "地铁发呆员", "还能再撑会儿", "怨气待机中", "先笑一下"];
 const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
 const COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
 const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date";
@@ -90,7 +98,7 @@ function toUser(row: any): LocalUser {
   return {
     guest_user_id: row.id,
     nickname: row.nickname,
-    avatar_url: row.avatar_url ?? "/brand-mark.svg",
+    avatar_url: row.avatar_url ?? DEFAULT_AVATARS[0],
     created_at: row.created_at ?? nowIso(),
     last_login_date: row.last_login_date ?? todayKey(),
     login_streak: Number(row.login_streak ?? 1),
@@ -106,7 +114,7 @@ function toPost(row: any, likedBy: string[] = []): LocalPost {
     id: row.id,
     user_id: row.user_id,
     nickname: row.nickname,
-    avatar_url: row.avatar_url ?? "/brand-mark.svg",
+    avatar_url: row.avatar_url ?? DEFAULT_AVATARS[0],
     content: row.content,
     sticker_id: row.sticker_id,
     reaction_count: Number(row.reaction_count ?? 0),
@@ -123,7 +131,7 @@ function toComment(row: any, likedBy: string[] = []): LocalComment {
     post_id: row.post_id,
     user_id: row.user_id,
     nickname: row.nickname,
-    avatar_url: row.avatar_url ?? "/brand-mark.svg",
+    avatar_url: row.avatar_url ?? DEFAULT_AVATARS[0],
     content: row.content,
     sticker_id: row.sticker_id,
     like_count: Number(row.like_count ?? 0),
@@ -140,7 +148,7 @@ function seedPosts(): LocalPost[] {
     id: `mock-${index + 1}`,
     user_id: `mock-user-${index % mockNicknames.length}`,
     nickname: mockNicknames[index % mockNicknames.length],
-    avatar_url: "/brand-mark.svg",
+    avatar_url: DEFAULT_AVATARS[index % DEFAULT_AVATARS.length],
     content,
     reaction_count: 8 + ((index * 13) % 180),
     comment_count: (index * 5) % 22,
@@ -162,7 +170,7 @@ function localEnterWithNickname(nickname: string) {
   return saveUser({
     guest_user_id: existing?.guest_user_id ?? uuid(),
     nickname: trimmed,
-    avatar_url: "/brand-mark.svg",
+    avatar_url: existing?.avatar_url ?? DEFAULT_AVATARS[0],
     created_at: existing?.created_at ?? nowIso(),
     last_login_date: todayKey(),
     login_streak: existing?.last_login_date === todayKey() ? existing.login_streak : (existing?.login_streak ?? 0) + 1,
@@ -175,6 +183,61 @@ function localEnterWithNickname(nickname: string) {
 
 export function getCurrentUser() {
   return readJson<LocalUser | null>(USER_KEY, null);
+}
+
+export function getRandomNickname() {
+  return `${RANDOM_NICKNAMES[Math.floor(Math.random() * RANDOM_NICKNAMES.length)]}${Math.floor(100 + Math.random() * 900)}`;
+}
+
+export async function updateCurrentUserProfile(input: { nickname?: string; avatar_url?: string }) {
+  const user = getCurrentUser();
+  if (!user) return null;
+  const next = saveUser({
+    ...user,
+    nickname: input.nickname?.trim().slice(0, 12) || user.nickname,
+    avatar_url: input.avatar_url || user.avatar_url || DEFAULT_AVATARS[0]
+  });
+
+  if (isSupabaseBrowserConfigured()) {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      await supabase.from("profiles").update({ nickname: next.nickname, avatar_url: next.avatar_url }).eq("id", next.guest_user_id);
+    } catch {
+      // Local profile preferences still apply even if remote profile update is unavailable.
+    }
+  }
+
+  return next;
+}
+
+export function getFavorites() {
+  return readJson<FavoriteRecord[]>(FAVORITES_KEY, []).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+}
+
+export function isFavorite(postId: string) {
+  return getFavorites().some((favorite) => favorite.post_id === postId);
+}
+
+export function toggleFavorite(postId: string) {
+  const favorites = getFavorites();
+  const exists = favorites.some((favorite) => favorite.post_id === postId);
+  const next = exists ? favorites.filter((favorite) => favorite.post_id !== postId) : [{ post_id: postId, created_at: nowIso() }, ...favorites];
+  writeJson(FAVORITES_KEY, next);
+  return !exists;
+}
+
+export async function getFavoritePosts() {
+  const favorites = getFavorites();
+  const posts = await getPosts();
+  const byId = new Map(posts.map((post) => [post.id, post]));
+  return favorites.map((favorite) => byId.get(favorite.post_id)).filter(Boolean) as LocalPost[];
+}
+
+export async function searchCommunity(query: string) {
+  const term = query.trim().toLowerCase();
+  if (!term) return [];
+  const posts = await getPosts();
+  return posts.filter((post) => post.content.toLowerCase().includes(term) || post.nickname.toLowerCase().includes(term));
 }
 
 export async function enterWithNickname(nickname: string, passphrase = "") {

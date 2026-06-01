@@ -6,7 +6,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { LocalPostCard } from "@/components/local-post-card";
 import { RichContent } from "@/components/rich-content";
 import { StickerPicker } from "@/components/sticker-picker";
-import { createComment, getComments, getCurrentUser, getPost, likeComment, likePost, LocalComment, LocalPost } from "@/lib/storage";
+import { Toast } from "@/components/toast";
+import { createComment, getComments, getCurrentUser, getPost, isFavorite, likeComment, likePost, LocalComment, LocalPost, toggleFavorite } from "@/lib/storage";
 
 const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
 const NETWORK_TOAST = "网络开小差了，稍后再试";
@@ -17,6 +18,7 @@ export default function PostDetailPage() {
   const router = useRouter();
   const [post, setPost] = useState<LocalPost | null>(null);
   const [comments, setComments] = useState<LocalComment[]>([]);
+  const [favorited, setFavorited] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
@@ -28,6 +30,7 @@ export default function PostDetailPage() {
     setUserId(current?.guest_user_id ?? null);
     setPost(await getPost(params.id));
     setComments(await getComments(params.id));
+    setFavorited(isFavorite(params.id));
   }
 
   useEffect(() => {
@@ -62,7 +65,6 @@ export default function PostDetailPage() {
       router.push(loginPrompt);
       return;
     }
-
     if (pendingPostIds.has(post.id)) return;
 
     const previousPost = post;
@@ -89,7 +91,6 @@ export default function PostDetailPage() {
       router.push(loginPrompt);
       return;
     }
-
     if (pendingCommentIds.has(commentId)) return;
 
     const previousComments = comments;
@@ -120,7 +121,9 @@ export default function PostDetailPage() {
     <div className="space-y-4">
       <LocalPostCard
         disabled={pendingPostIds.has(post.id)}
+        favorited={favorited}
         liked={Boolean(userId && post.liked_by.includes(userId))}
+        onFavorite={() => setFavorited(toggleFavorite(post.id))}
         onLike={() => handlePostReaction()}
         onEmotion={(reaction) => handlePostReaction(reaction)}
         post={post}
@@ -152,7 +155,10 @@ export default function PostDetailPage() {
                 key={comment.id}
               >
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="truncate text-[15px] font-semibold leading-5 text-white">{comment.nickname}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <img alt="" className="h-9 w-9 rounded-2xl border border-acid/20 bg-acid/10 object-contain p-1" src={comment.avatar_url} />
+                    <p className="truncate text-[15px] font-semibold leading-5 text-white">{comment.nickname}</p>
+                  </div>
                   <motion.button
                     className={`rounded-[12px] border px-3 py-1 text-label ${
                       userId && comment.liked_by.includes(userId) ? "border-acid/70 bg-acid/20 text-acid" : "border-line text-muted"
@@ -176,7 +182,7 @@ export default function PostDetailPage() {
         </div>
       </section>
 
-      {toast ? <p className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full border border-acid/30 bg-ink/90 px-4 py-2 text-meta text-acid shadow-acid">{toast}</p> : null}
+      <Toast message={toast} />
     </div>
   );
 }

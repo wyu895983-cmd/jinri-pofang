@@ -3,21 +3,30 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { Bookmark, Edit3 } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import { AvatarPicker } from "@/components/avatar-picker";
 import { BrandMark } from "@/components/brand-mark";
 import { RichContent } from "@/components/rich-content";
 import { StatsCard } from "@/components/stats-card";
 import { getLevelInfo } from "@/lib/levels";
-import { getCurrentUser, getPosts, LocalPost, LocalUser, refreshCurrentUser, signOutLocalUser } from "@/lib/storage";
+import { getFavorites, getPosts, LocalPost, LocalUser, refreshCurrentUser, signOutLocalUser, updateCurrentUserProfile } from "@/lib/storage";
 
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<LocalUser | null>(null);
   const [posts, setPosts] = useState<LocalPost[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [nickname, setNickname] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [favoriteCount, setFavoriteCount] = useState(0);
 
   async function refresh() {
     const current = await refreshCurrentUser();
     setUser(current);
+    setNickname(current?.nickname ?? "");
+    setAvatar(current?.avatar_url ?? "");
+    setFavoriteCount(getFavorites().length);
     setPosts(current ? (await getPosts()).filter((post) => post.user_id === current.guest_user_id) : []);
   }
 
@@ -27,7 +36,12 @@ export default function ProfilePage() {
     return () => window.removeEventListener("pofang:storage-change", refresh);
   }, []);
 
-  const totalLikes = user?.total_likes ?? 0;
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const next = await updateCurrentUserProfile({ nickname, avatar_url: avatar });
+    setUser(next);
+    setEditing(false);
+  }
 
   if (!user) {
     return (
@@ -48,15 +62,31 @@ export default function ProfilePage() {
     <div className="space-y-5">
       <section className="glass rounded-card p-5">
         <div className="flex items-center gap-4">
-          <BrandMark className="h-16 w-16 shrink-0 drop-shadow-[0_0_24px_rgba(182,255,59,0.2)]" />
-          <div className="min-w-0">
+          <img alt="" className="h-16 w-16 shrink-0 rounded-2xl border border-acid/30 bg-acid/10 object-contain p-2 shadow-acid" src={user.avatar_url} />
+          <div className="min-w-0 flex-1">
             <p className="text-label text-acid">我的 PoPo 档案</p>
             <h1 className="mt-1 truncate text-h1 text-white">{user.nickname}</h1>
             <p className="mt-1 text-meta text-muted">
               Lv{level.level} · {level.title}
             </p>
           </div>
+          <button className="grid h-10 w-10 place-items-center rounded-2xl border border-line text-muted" onClick={() => setEditing((value) => !value)} type="button">
+            <Edit3 className="h-4 w-4" />
+          </button>
         </div>
+
+        {editing ? (
+          <form className="mt-5 space-y-4" onSubmit={saveProfile}>
+            <input
+              className="h-11 w-full rounded-button border border-line bg-ink/70 px-4 text-body text-white outline-none focus:border-acid"
+              maxLength={12}
+              onChange={(event) => setNickname(event.target.value)}
+              value={nickname}
+            />
+            <AvatarPicker selected={avatar} onSelect={setAvatar} />
+            <button className="app-button w-full bg-acid text-ink">保存资料</button>
+          </form>
+        ) : null}
 
         <div className="mt-5">
           <div className="mb-2 flex justify-between text-meta text-muted">
@@ -70,20 +100,20 @@ export default function ProfilePage() {
       </section>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="glass rounded-card p-5">
-          <p className="text-meta text-muted">今日怨气值</p>
-          <motion.p
-            className="mt-2 text-h2 text-acid drop-shadow-[0_0_18px_rgba(182,255,59,0.34)]"
-            animate={{ scale: [1, 1.045, 1], filter: ["brightness(1)", "brightness(1.25)", "brightness(1)"] }}
-            transition={{ duration: 1.9, repeat: Infinity, ease: "easeInOut" }}
-          >
-            {user.energy} / 20
-          </motion.p>
-          <p className="mt-2 text-label text-muted">每天重置 20</p>
-        </div>
-        <StatsCard label="连续登录" value={`${user.login_streak} 天`} />
         <StatsCard label="总发帖" value={user.total_posts} />
-        <StatsCard label="总获赞" value={totalLikes} />
+        <StatsCard label="总获赞" value={user.total_likes} />
+        <StatsCard label="收藏" value={favoriteCount} />
+        <StatsCard label="连续登录" value={`${user.login_streak} 天`} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Link className="app-button flex items-center justify-center gap-2 border border-acid/35 bg-acid/10 text-acid" href="/favorites">
+          <Bookmark className="h-4 w-4" />
+          我的收藏
+        </Link>
+        <Link className="app-button flex items-center justify-center border border-acid/35 bg-acid/10 text-acid" href="/feedback">
+          意见反馈
+        </Link>
       </div>
 
       <section className="glass rounded-card p-5">
@@ -91,7 +121,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-3 gap-3">
           {[
             ["💚", "初次破防", user.total_posts > 0],
-            ["🔥", "热度体质", totalLikes >= 5],
+            ["🔥", "热度体质", user.total_likes >= 5],
             ["🌙", "连续登录", user.login_streak >= 2],
             ["✍️", "吐槽选手", posts.length >= 3],
             ["⚡", "怨气充能", user.exp >= 20],
@@ -123,10 +153,6 @@ export default function ProfilePage() {
         换个昵称
       </button>
 
-      <Link className="app-button flex w-full items-center justify-center border border-acid/35 bg-acid/10 text-acid hover:bg-acid/15" href="/feedback">
-        意见反馈
-      </Link>
-
       <section>
         <h2 className="mb-4 text-h2 text-white">历史吐槽</h2>
         <div className="space-y-4">
@@ -134,11 +160,13 @@ export default function ProfilePage() {
             posts.map((post) => (
               <Link className="glass block rounded-card p-5" href={`/post/${post.id}`} key={post.id}>
                 <RichContent className="whitespace-pre-wrap text-body text-zinc-100" content={post.content} />
-                <p className="mt-3 text-meta text-muted">{post.reaction_count} 赞 · {post.comment_count} 评论</p>
+                <p className="mt-3 text-meta text-muted">
+                  {post.reaction_count} 赞 · {post.comment_count} 评论
+                </p>
               </Link>
             ))
           ) : (
-            <div className="glass rounded-card p-8 text-center text-meta text-muted">你还在憋大招。</div>
+            <div className="glass rounded-card p-8 text-center text-meta text-muted">你还没有发布过吐槽。</div>
           )}
         </div>
       </section>
