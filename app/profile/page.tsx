@@ -11,7 +11,18 @@ import NicknameInput from "@/components/nickname-input";
 import { RichContent } from "@/components/rich-content";
 import { StatsCard } from "@/components/stats-card";
 import { getLevelInfo } from "@/lib/levels";
-import { getFavorites, getPosts, LocalPost, LocalUser, refreshCurrentUser, signOutLocalUser, updateCurrentUserProfile } from "@/lib/storage";
+import {
+  getFavorites,
+  getNotifications,
+  getPosts,
+  InteractionNotification,
+  LocalPost,
+  LocalUser,
+  markNotificationsRead,
+  refreshCurrentUser,
+  signOutLocalUser,
+  updateCurrentUserProfile
+} from "@/lib/storage";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -21,6 +32,7 @@ export default function ProfilePage() {
   const [nickname, setNickname] = useState("");
   const [avatar, setAvatar] = useState("");
   const [favoriteCount, setFavoriteCount] = useState(0);
+  const [notifications, setNotifications] = useState<InteractionNotification[]>([]);
 
   async function refresh() {
     const current = await refreshCurrentUser();
@@ -28,11 +40,14 @@ export default function ProfilePage() {
     setNickname(current?.nickname ?? "");
     setAvatar(current?.avatar_url ?? "");
     setFavoriteCount(getFavorites().length);
+    setNotifications(getNotifications());
     setPosts(current ? (await getPosts()).filter((post) => post.user_id === current.guest_user_id) : []);
   }
 
   useEffect(() => {
     refresh();
+    const notifications = markNotificationsRead();
+    setNotifications(notifications);
     window.addEventListener("pofang:storage-change", refresh);
     return () => window.removeEventListener("pofang:storage-change", refresh);
   }, []);
@@ -74,9 +89,65 @@ export default function ProfilePage() {
   }
 
   const level = getLevelInfo(user.exp);
+  const likeNotifications = notifications.filter((notification) => notification.type === "like");
+  const commentNotifications = notifications.filter((notification) => notification.type === "comment");
+
+  function formatNotificationTime(value: string) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  }
+
+  function preview(text: string) {
+    return text.length > 42 ? `${text.slice(0, 42)}...` : text;
+  }
 
   return (
     <div className="space-y-5">
+      <section className="glass rounded-card p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-h2 text-white">收到的互动</h2>
+          <span className="rounded-full border border-acid/25 bg-acid/10 px-3 py-1 text-meta text-acid">{notifications.length}</span>
+        </div>
+
+        <div className="space-y-5">
+          <div>
+            <p className="mb-3 text-label text-acid">点赞了你的吐槽</p>
+            <div className="space-y-3">
+              {likeNotifications.length ? (
+                likeNotifications.map((notification) => (
+                  <Link className="block rounded-card border border-line bg-white/[0.035] p-3 transition hover:border-acid/35" href={`/post/${notification.postId}`} key={notification.id}>
+                    <p className="text-meta text-muted">{formatNotificationTime(notification.createdAt)}</p>
+                    <p className="mt-2 text-body text-zinc-100">有人点赞了你的吐槽</p>
+                    <p className="mt-1 line-clamp-2 text-meta text-muted">{preview(notification.postText)}</p>
+                  </Link>
+                ))
+              ) : (
+                <p className="rounded-card border border-line bg-white/[0.025] p-3 text-meta text-muted">暂时还没有点赞提醒。</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-3 text-label text-acid">评论了你的吐槽</p>
+            <div className="space-y-3">
+              {commentNotifications.length ? (
+                commentNotifications.map((notification) => (
+                  <Link className="block rounded-card border border-line bg-white/[0.035] p-3 transition hover:border-acid/35" href={`/post/${notification.postId}`} key={notification.id}>
+                    <p className="text-meta text-muted">{formatNotificationTime(notification.createdAt)}</p>
+                    <p className="mt-2 text-body text-zinc-100">有人评论了你的吐槽</p>
+                    <p className="mt-1 line-clamp-2 text-meta text-muted">{preview(notification.postText)}</p>
+                    {notification.commentText ? <p className="mt-2 rounded-button bg-acid/10 px-3 py-2 text-meta text-acid">{preview(notification.commentText)}</p> : null}
+                  </Link>
+                ))
+              ) : (
+                <p className="rounded-card border border-line bg-white/[0.025] p-3 text-meta text-muted">暂时还没有评论提醒。</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="glass rounded-card p-5">
         <div className="flex items-center gap-4">
           <img alt="" className="h-16 w-16 shrink-0 rounded-2xl border border-acid/30 bg-acid/10 object-contain p-2 shadow-acid" src={user.avatar_url} />
