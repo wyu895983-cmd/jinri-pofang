@@ -16,7 +16,14 @@ export default function LoginPage() {
 
   useEffect(() => {
     setError(new URLSearchParams(window.location.search).get("message") ?? "");
+    setNickname(window.localStorage.getItem("userName")?.slice(0, 12) ?? "");
+    setAvatar(window.localStorage.getItem("userAvatar") || DEFAULT_AVATARS[0]);
   }, []);
+
+  async function selectAvatar(nextAvatar: string) {
+    setAvatar(nextAvatar);
+    await updateCurrentUserProfile({ avatar_url: nextAvatar });
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -72,7 +79,7 @@ export default function LoginPage() {
           />
           <div className="rounded-card border border-line bg-white/[0.035] p-3">
             <p className="mb-3 text-left text-label text-muted">选择头像</p>
-            <AvatarPicker selected={avatar} onSelect={setAvatar} />
+            <AvatarPicker selected={avatar} onSelect={selectAvatar} />
           </div>
           <button className="app-button w-full bg-acid text-ink hover:brightness-110" disabled={submitting}>
             {submitting ? "进入中..." : "开始破防"}

@@ -40,7 +40,15 @@ export default function ProfilePage() {
     event.preventDefault();
     const next = await updateCurrentUserProfile({ nickname, avatar_url: avatar });
     setUser(next);
+    setNickname(next?.nickname ?? nickname);
+    setAvatar(next?.avatar_url ?? avatar);
     setEditing(false);
+  }
+
+  async function selectAvatar(nextAvatar: string) {
+    setAvatar(nextAvatar);
+    const next = await updateCurrentUserProfile({ avatar_url: nextAvatar });
+    if (next) setUser(next);
   }
 
   if (!user) {
@@ -83,7 +91,7 @@ export default function ProfilePage() {
               onChange={(event) => setNickname(event.target.value)}
               value={nickname}
             />
-            <AvatarPicker selected={avatar} onSelect={setAvatar} />
+            <AvatarPicker selected={avatar} onSelect={selectAvatar} />
             <button className="app-button w-full bg-acid text-ink">保存资料</button>
           </form>
         ) : null}

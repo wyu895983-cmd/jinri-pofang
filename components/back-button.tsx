@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef } from "react";
 export function BackButton() {
   const pathname = usePathname();
   const router = useRouter();
-  const touchStartRef = useRef<{ x: number; y: number; id: number } | null>(null);
+  const gestureRef = useRef<{ x: number; y: number; id: number | null; active: boolean } | null>(null);
 
   const goBack = useCallback(() => {
     if (window.history.length > 1) {
@@ -25,15 +25,29 @@ export function BackButton() {
       const touch = event.touches[0];
       if (!touch || touch.clientX > 28) return;
 
-      touchStartRef.current = { x: touch.clientX, y: touch.clientY, id: touch.identifier };
+      gestureRef.current = { x: touch.clientX, y: touch.clientY, id: touch.identifier, active: true };
+    }
+
+    function onTouchMove(event: TouchEvent) {
+      const start = gestureRef.current;
+      if (!start?.active) return;
+
+      const touch = Array.from(event.touches).find((item) => item.identifier === start.id);
+      if (!touch) return;
+
+      const deltaX = touch.clientX - start.x;
+      const deltaY = Math.abs(touch.clientY - start.y);
+      if (deltaY > 52 && deltaY > deltaX) {
+        gestureRef.current = null;
+      }
     }
 
     function onTouchEnd(event: TouchEvent) {
-      const start = touchStartRef.current;
+      const start = gestureRef.current;
       if (!start) return;
 
       const touch = Array.from(event.changedTouches).find((item) => item.identifier === start.id);
-      touchStartRef.current = null;
+      gestureRef.current = null;
       if (!touch) return;
 
       const deltaX = touch.clientX - start.x;
@@ -44,17 +58,55 @@ export function BackButton() {
     }
 
     function onTouchCancel() {
-      touchStartRef.current = null;
+      gestureRef.current = null;
     }
 
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
-    window.addEventListener("touchcancel", onTouchCancel, { passive: true });
+    function onPointerDown(event: PointerEvent) {
+      if (event.pointerType === "touch" || event.clientX > 28 || event.button !== 0) return;
+      gestureRef.current = { x: event.clientX, y: event.clientY, id: event.pointerId, active: true };
+    }
+
+    function onPointerMove(event: PointerEvent) {
+      const start = gestureRef.current;
+      if (!start?.active || start.id !== event.pointerId) return;
+
+      const deltaX = event.clientX - start.x;
+      const deltaY = Math.abs(event.clientY - start.y);
+      if (deltaY > 52 && deltaY > deltaX) {
+        gestureRef.current = null;
+      }
+    }
+
+    function onPointerUp(event: PointerEvent) {
+      const start = gestureRef.current;
+      if (!start || start.id !== event.pointerId) return;
+
+      gestureRef.current = null;
+      const deltaX = event.clientX - start.x;
+      const deltaY = Math.abs(event.clientY - start.y);
+      if (deltaX > 78 && deltaY < 46) {
+        goBack();
+      }
+    }
+
+    window.addEventListener("touchstart", onTouchStart, { capture: true, passive: true });
+    window.addEventListener("touchmove", onTouchMove, { capture: true, passive: true });
+    window.addEventListener("touchend", onTouchEnd, { capture: true, passive: true });
+    window.addEventListener("touchcancel", onTouchCancel, { capture: true, passive: true });
+    window.addEventListener("pointerdown", onPointerDown, { capture: true, passive: true });
+    window.addEventListener("pointermove", onPointerMove, { capture: true, passive: true });
+    window.addEventListener("pointerup", onPointerUp, { capture: true, passive: true });
+    window.addEventListener("pointercancel", onTouchCancel, { capture: true, passive: true });
 
     return () => {
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("touchcancel", onTouchCancel);
+      window.removeEventListener("touchstart", onTouchStart, true);
+      window.removeEventListener("touchmove", onTouchMove, true);
+      window.removeEventListener("touchend", onTouchEnd, true);
+      window.removeEventListener("touchcancel", onTouchCancel, true);
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("pointermove", onPointerMove, true);
+      window.removeEventListener("pointerup", onPointerUp, true);
+      window.removeEventListener("pointercancel", onTouchCancel, true);
     };
   }, [goBack, pathname]);
 

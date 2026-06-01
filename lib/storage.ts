@@ -53,6 +53,8 @@ const USER_KEY = "jinri-pofang:guest-user";
 const POSTS_KEY = "jinri-pofang:posts";
 const COMMENTS_KEY = "jinri-pofang:comments";
 const FAVORITES_KEY = "jinri-pofang:favorites";
+const USER_NAME_KEY = "userName";
+const USER_AVATAR_KEY = "userAvatar";
 export const DEFAULT_AVATARS = ["/avatars/avatar1.webp", "/avatars/avatar2.webp", "/avatars/avatar3.webp", "/avatars/avatar4.webp"];
 const RANDOM_NICKNAMES = ["今日路过", "普通破防人", "地铁发呆员", "还能再撑会儿", "怨气待机中", "先笑一下"];
 const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
@@ -89,9 +91,33 @@ function writeJson<T>(key: string, value: T) {
   window.dispatchEvent(new CustomEvent("pofang:storage-change"));
 }
 
+function readString(key: string) {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(key)?.trim() ?? "";
+}
+
+function writeProfileKeys(user: Pick<LocalUser, "nickname" | "avatar_url">) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(USER_NAME_KEY, user.nickname);
+  window.localStorage.setItem(USER_AVATAR_KEY, user.avatar_url || DEFAULT_AVATARS[0]);
+}
+
+function mergeProfileKeys(user: LocalUser) {
+  const nickname = readString(USER_NAME_KEY).slice(0, 12);
+  const avatar = readString(USER_AVATAR_KEY);
+
+  return {
+    ...user,
+    nickname: nickname || user.nickname,
+    avatar_url: avatar || user.avatar_url || DEFAULT_AVATARS[0]
+  };
+}
+
 function saveUser(user: LocalUser) {
-  writeJson(USER_KEY, user);
-  return user;
+  const next = mergeProfileKeys(user);
+  writeProfileKeys(next);
+  writeJson(USER_KEY, next);
+  return next;
 }
 
 function toUser(row: any): LocalUser {
@@ -110,11 +136,15 @@ function toUser(row: any): LocalUser {
 }
 
 function toPost(row: any, likedBy: string[] = []): LocalPost {
+  const current = getCurrentUser();
+  const isCurrentUserPost = current?.guest_user_id === row.user_id;
+  const nickname = isCurrentUserPost && current ? current.nickname : row.nickname;
+  const avatar = isCurrentUserPost && current ? current.avatar_url : row.avatar_url ?? DEFAULT_AVATARS[0];
   return {
     id: row.id,
     user_id: row.user_id,
-    nickname: row.nickname,
-    avatar_url: row.avatar_url ?? DEFAULT_AVATARS[0],
+    nickname,
+    avatar_url: avatar,
     content: row.content,
     sticker_id: row.sticker_id,
     reaction_count: Number(row.reaction_count ?? 0),
@@ -126,12 +156,16 @@ function toPost(row: any, likedBy: string[] = []): LocalPost {
 }
 
 function toComment(row: any, likedBy: string[] = []): LocalComment {
+  const current = getCurrentUser();
+  const isCurrentUserComment = current?.guest_user_id === row.user_id;
+  const nickname = isCurrentUserComment && current ? current.nickname : row.nickname;
+  const avatar = isCurrentUserComment && current ? current.avatar_url : row.avatar_url ?? DEFAULT_AVATARS[0];
   return {
     id: row.id,
     post_id: row.post_id,
     user_id: row.user_id,
-    nickname: row.nickname,
-    avatar_url: row.avatar_url ?? DEFAULT_AVATARS[0],
+    nickname,
+    avatar_url: avatar,
     content: row.content,
     sticker_id: row.sticker_id,
     like_count: Number(row.like_count ?? 0),
@@ -167,10 +201,12 @@ function localEnterWithNickname(nickname: string) {
   const trimmed = nickname.trim().slice(0, 12);
   if (!trimmed) throw new Error("请输入昵称");
   const existing = readJson<LocalUser | null>(USER_KEY, null);
+  const savedAvatar = readString(USER_AVATAR_KEY);
+  if (typeof window !== "undefined") window.localStorage.setItem(USER_NAME_KEY, trimmed);
   return saveUser({
     guest_user_id: existing?.guest_user_id ?? uuid(),
     nickname: trimmed,
-    avatar_url: existing?.avatar_url ?? DEFAULT_AVATARS[0],
+    avatar_url: savedAvatar || existing?.avatar_url || DEFAULT_AVATARS[0],
     created_at: existing?.created_at ?? nowIso(),
     last_login_date: todayKey(),
     login_streak: existing?.last_login_date === todayKey() ? existing.login_streak : (existing?.login_streak ?? 0) + 1,
@@ -182,7 +218,13 @@ function localEnterWithNickname(nickname: string) {
 }
 
 export function getCurrentUser() {
-  return readJson<LocalUser | null>(USER_KEY, null);
+  const user = readJson<LocalUser | null>(USER_KEY, null);
+  if (!user) return null;
+  const next = mergeProfileKeys(user);
+  if (next.nickname !== user.nickname || next.avatar_url !== user.avatar_url) {
+    saveUser(next);
+  }
+  return next;
 }
 
 export function getRandomNickname() {
@@ -191,11 +233,23 @@ export function getRandomNickname() {
 
 export async function updateCurrentUserProfile(input: { nickname?: string; avatar_url?: string }) {
   const user = getCurrentUser();
-  if (!user) return null;
+  const nickname = input.nickname?.trim().slice(0, 12);
+  const avatar = input.avatar_url || readString(USER_AVATAR_KEY) || DEFAULT_AVATARS[0];
+
+  if (typeof window !== "undefined") {
+    if (nickname) window.localStorage.setItem(USER_NAME_KEY, nickname);
+    if (avatar) window.localStorage.setItem(USER_AVATAR_KEY, avatar);
+  }
+
+  if (!user) {
+    window.dispatchEvent(new CustomEvent("pofang:storage-change"));
+    return null;
+  }
+
   const next = saveUser({
     ...user,
-    nickname: input.nickname?.trim().slice(0, 12) || user.nickname,
-    avatar_url: input.avatar_url || user.avatar_url || DEFAULT_AVATARS[0]
+    nickname: nickname || user.nickname,
+    avatar_url: avatar || user.avatar_url || DEFAULT_AVATARS[0]
   });
 
   if (isSupabaseBrowserConfigured()) {
@@ -244,6 +298,7 @@ export async function enterWithNickname(nickname: string, passphrase = "") {
   const trimmed = nickname.trim().slice(0, 12);
   if (!trimmed) throw new Error("请输入昵称");
   if (!passphrase.trim() || passphrase.trim().length < 4) throw new Error("请输入至少 4 位口令");
+  if (typeof window !== "undefined") window.localStorage.setItem(USER_NAME_KEY, trimmed);
 
   if (!isSupabaseBrowserConfigured()) return localEnterWithNickname(trimmed);
 
