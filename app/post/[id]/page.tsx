@@ -9,6 +9,8 @@ import { StickerPicker } from "@/components/sticker-picker";
 import { createComment, getComments, getCurrentUser, getPost, likeComment, likePost, LocalComment, LocalPost } from "@/lib/storage";
 
 const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
+const NETWORK_TOAST = "网络开小差了，稍后再试";
+const LIKE_LOCK_MS = 500;
 
 export default function PostDetailPage() {
   const params = useParams<{ id: string }>();
@@ -17,6 +19,9 @@ export default function PostDetailPage() {
   const [comments, setComments] = useState<LocalComment[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+  const [pendingPostIds, setPendingPostIds] = useState<Set<string>>(new Set());
+  const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(new Set());
 
   async function refresh() {
     const current = getCurrentUser();
@@ -51,6 +56,62 @@ export default function PostDetailPage() {
     }
   }
 
+  async function handlePostReaction(reaction = "like") {
+    const currentUserId = getCurrentUser()?.guest_user_id;
+    if (!currentUserId || !post) {
+      router.push(loginPrompt);
+      return;
+    }
+
+    if (pendingPostIds.has(post.id)) return;
+
+    const previousPost = post;
+    setPendingPostIds((value) => new Set(value).add(post.id));
+    setPost(applyOptimisticPostReaction(post, currentUserId));
+
+    try {
+      await Promise.all([likePost(post.id, reaction), wait(LIKE_LOCK_MS)]);
+    } catch {
+      setPost(previousPost);
+      showNetworkToast(setToast);
+    } finally {
+      setPendingPostIds((value) => {
+        const next = new Set(value);
+        next.delete(post.id);
+        return next;
+      });
+    }
+  }
+
+  async function handleCommentLike(commentId: string) {
+    const currentUserId = getCurrentUser()?.guest_user_id;
+    if (!currentUserId) {
+      router.push(loginPrompt);
+      return;
+    }
+
+    if (pendingCommentIds.has(commentId)) return;
+
+    const previousComments = comments;
+    if (!previousComments.some((comment) => comment.id === commentId)) return;
+
+    setPendingCommentIds((value) => new Set(value).add(commentId));
+    setComments((value) => applyOptimisticCommentReaction(value, commentId, currentUserId));
+
+    try {
+      await Promise.all([likeComment(commentId), wait(LIKE_LOCK_MS)]);
+    } catch {
+      setComments(previousComments);
+      showNetworkToast(setToast);
+    } finally {
+      setPendingCommentIds((value) => {
+        const next = new Set(value);
+        next.delete(commentId);
+        return next;
+      });
+    }
+  }
+
   if (!post) {
     return <div className="glass rounded-card p-8 text-center text-meta text-muted">这条破防瞬间已经找不到了。</div>;
   }
@@ -58,15 +119,10 @@ export default function PostDetailPage() {
   return (
     <div className="space-y-4">
       <LocalPostCard
+        disabled={pendingPostIds.has(post.id)}
         liked={Boolean(userId && post.liked_by.includes(userId))}
-        onLike={() => {
-          if (!requireName()) return;
-          void likePost(post.id).then(refresh);
-        }}
-        onEmotion={(reaction) => {
-          if (!requireName()) return;
-          void likePost(post.id, reaction).then(refresh);
-        }}
+        onLike={() => handlePostReaction()}
+        onEmotion={(reaction) => handlePostReaction(reaction)}
         post={post}
       />
 
@@ -97,18 +153,19 @@ export default function PostDetailPage() {
               >
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <p className="truncate text-[15px] font-semibold leading-5 text-white">{comment.nickname}</p>
-                  <button
+                  <motion.button
                     className={`rounded-[12px] border px-3 py-1 text-label ${
                       userId && comment.liked_by.includes(userId) ? "border-acid/70 bg-acid/20 text-acid" : "border-line text-muted"
                     }`}
-                    onClick={() => {
-                      if (!requireName()) return;
-                      void likeComment(comment.id).then(refresh);
-                    }}
+                    disabled={pendingCommentIds.has(comment.id)}
+                    onClick={() => handleCommentLike(comment.id)}
                     type="button"
+                    whileTap={{ scale: 0.92 }}
                   >
-                    {comment.like_count}赞
-                  </button>
+                    <motion.span key={comment.like_count} initial={{ scale: 1.22 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
+                      {comment.like_count}赞
+                    </motion.span>
+                  </motion.button>
                 </div>
                 <RichContent className="text-body text-zinc-200" content={comment.content} />
               </motion.article>
@@ -118,6 +175,38 @@ export default function PostDetailPage() {
           )}
         </div>
       </section>
+
+      {toast ? <p className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full border border-acid/30 bg-ink/90 px-4 py-2 text-meta text-acid shadow-acid">{toast}</p> : null}
     </div>
   );
+}
+
+function applyOptimisticPostReaction(post: LocalPost, userId: string) {
+  const liked = post.liked_by.includes(userId);
+  return {
+    ...post,
+    liked_by: liked ? post.liked_by.filter((id) => id !== userId) : [...post.liked_by, userId],
+    reaction_count: Math.max(0, post.reaction_count + (liked ? -1 : 1))
+  };
+}
+
+function applyOptimisticCommentReaction(comments: LocalComment[], commentId: string, userId: string) {
+  return comments.map((comment) => {
+    if (comment.id !== commentId) return comment;
+    const liked = comment.liked_by.includes(userId);
+    return {
+      ...comment,
+      liked_by: liked ? comment.liked_by.filter((id) => id !== userId) : [...comment.liked_by, userId],
+      like_count: Math.max(0, comment.like_count + (liked ? -1 : 1))
+    };
+  });
+}
+
+function showNetworkToast(setToast: (value: string) => void) {
+  setToast(NETWORK_TOAST);
+  window.setTimeout(() => setToast(""), 1800);
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }

@@ -25,6 +25,7 @@ export function LocalPostCard({
   liked,
   onLike,
   onEmotion,
+  disabled = false,
   href = `/post/${post.id}`
 }: {
   post: LocalPost;
@@ -32,6 +33,7 @@ export function LocalPostCard({
   liked: boolean;
   onLike: () => void;
   onEmotion?: (reaction: "laugh" | "same" | "broken" | "fire") => void;
+  disabled?: boolean;
   href?: string;
 }) {
   const heatClass = getHeatClass(post.reaction_count);
@@ -50,7 +52,7 @@ export function LocalPostCard({
           <p className="truncate text-[15px] font-semibold leading-5 text-white">{post.nickname}</p>
           <p className="mt-2 text-meta text-muted">{formatLocalTime(post.created_at)}</p>
         </Link>
-        <LikeBadge count={post.reaction_count} liked={liked} onClick={onLike} />
+        <LikeBadge count={post.reaction_count} disabled={disabled} liked={liked} onClick={onLike} />
       </div>
 
       <Link href={href}>
@@ -65,7 +67,7 @@ export function LocalPostCard({
 
       <div className="mt-5 grid grid-cols-2 gap-2">
         {emotions.map((emotion) => (
-          <EmotionButton key={emotion.label} emotion={emotion} onReact={() => onEmotion?.(emotion.value)} />
+          <EmotionButton disabled={disabled} key={emotion.label} emotion={emotion} onReact={() => onEmotion?.(emotion.value)} />
         ))}
         <Link className="app-button col-span-2 flex items-center justify-center text-muted hover:bg-white/5 hover:text-white" href={`/post/${post.id}`}>
           {post.comment_count} 条评论
@@ -75,7 +77,7 @@ export function LocalPostCard({
   );
 }
 
-function LikeBadge({ count, liked, onClick }: { count: number; liked: boolean; onClick: () => void }) {
+function LikeBadge({ count, disabled, liked, onClick }: { count: number; disabled?: boolean; liked: boolean; onClick: () => void }) {
   const [burst, setBurst] = useState(0);
   const [delta, setDelta] = useState<"+1" | "-1">("+1");
   const particles = ["✦", "怨", "✧", "Po", "✦"];
@@ -97,6 +99,7 @@ function LikeBadge({ count, liked, onClick }: { count: number; liked: boolean; o
       whileTap={{ scale: 0.9 }}
       onClick={click}
       aria-pressed={liked}
+      disabled={disabled}
     >
       <motion.span key={count} initial={{ scale: 1.22 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
         {count}赞
@@ -139,7 +142,7 @@ function LikeBadge({ count, liked, onClick }: { count: number; liked: boolean; o
   );
 }
 
-function EmotionButton({ emotion, onReact }: { emotion: Emotion; onReact?: () => void }) {
+function EmotionButton({ disabled, emotion, onReact }: { disabled?: boolean; emotion: Emotion; onReact?: () => void }) {
   const [burst, setBurst] = useState(0);
   const particles = Array.from({ length: 8 });
 
@@ -152,6 +155,7 @@ function EmotionButton({ emotion, onReact }: { emotion: Emotion; onReact?: () =>
         setBurst((value) => value + 1);
         onReact?.();
       }}
+      disabled={disabled}
       type="button"
     >
       <span className="mr-2">{emotion.emoji}</span>
