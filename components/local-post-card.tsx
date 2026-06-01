@@ -10,13 +10,14 @@ type Emotion = {
   emoji: string;
   label: string;
   value: "laugh" | "same" | "broken" | "fire";
+  message: string;
 };
 
 const emotions: Emotion[] = [
-  { emoji: "😂", label: "笑死", value: "laugh" },
-  { emoji: "😭", label: "共鸣", value: "same" },
-  { emoji: "💀", label: "破防", value: "broken" },
-  { emoji: "🔥", label: "神吐槽", value: "fire" }
+  { emoji: "😂", label: "笑死", value: "laugh", message: "笑出声了，PoPo 已经替你鼓掌。" },
+  { emoji: "😭", label: "共鸣", value: "same", message: "这份委屈，大家都懂。" },
+  { emoji: "💀", label: "破防", value: "broken", message: "这条怨气我替你记下了。" },
+  { emoji: "🔥", label: "神吐槽", value: "fire", message: "这句可以进今日神吐槽。" }
 ];
 
 export function LocalPostCard({
@@ -37,6 +38,15 @@ export function LocalPostCard({
   href?: string;
 }) {
   const heatClass = getHeatClass(post.reaction_count);
+  const [activeEmotion, setActiveEmotion] = useState<Emotion["value"] | null>(null);
+
+  function toggleEmotion(emotion: Emotion) {
+    setActiveEmotion((current) => {
+      if (current === emotion.value) return null;
+      onEmotion?.(emotion.value);
+      return emotion.value;
+    });
+  }
 
   return (
     <motion.article
@@ -67,7 +77,13 @@ export function LocalPostCard({
 
       <div className="mt-5 grid grid-cols-2 gap-2">
         {emotions.map((emotion) => (
-          <EmotionButton disabled={disabled} key={emotion.label} emotion={emotion} onReact={() => onEmotion?.(emotion.value)} />
+          <EmotionButton
+            active={activeEmotion === emotion.value}
+            disabled={disabled}
+            key={emotion.label}
+            emotion={emotion}
+            onReact={() => toggleEmotion(emotion)}
+          />
         ))}
         <Link className="app-button col-span-2 flex items-center justify-center text-muted hover:bg-white/5 hover:text-white" href={`/post/${post.id}`}>
           {post.comment_count} 条评论
@@ -142,47 +158,76 @@ function LikeBadge({ count, disabled, liked, onClick }: { count: number; disable
   );
 }
 
-function EmotionButton({ disabled, emotion, onReact }: { disabled?: boolean; emotion: Emotion; onReact?: () => void }) {
+function EmotionButton({
+  active,
+  disabled,
+  emotion,
+  onReact
+}: {
+  active: boolean;
+  disabled?: boolean;
+  emotion: Emotion;
+  onReact?: () => void;
+}) {
   const [burst, setBurst] = useState(0);
   const particles = Array.from({ length: 8 });
 
   return (
-    <motion.button
-      className="app-button group relative overflow-hidden border border-line bg-white/[0.04] text-button text-zinc-100 hover:border-purple/50 hover:bg-purple/10"
-      whileTap={{ scale: 0.94 }}
-      transition={{ duration: 0.18 }}
-      onClick={() => {
-        setBurst((value) => value + 1);
-        onReact?.();
-      }}
-      disabled={disabled}
-      type="button"
-    >
-      <span className="mr-2">{emotion.emoji}</span>
-      {emotion.label}
-      <span className="pointer-events-none absolute inset-0">
-        {particles.map((_, index) => (
-          <motion.span
-            className="absolute left-1/2 top-1/2 opacity-0"
-            key={`${burst}-${index}`}
-            initial={{ opacity: 0, x: 0, y: 0, scale: 0.7 }}
-            animate={
-              burst
-                ? {
-                    opacity: [0, 1, 0],
-                    x: [0, (index - 3.5) * 9],
-                    y: [0, -28 - (index % 3) * 10],
-                    scale: [0.7, 1.2, 0.7]
-                  }
-                : undefined
-            }
-            transition={{ duration: 0.6 }}
+    <div className="relative">
+      <motion.button
+        className="app-button group relative w-full overflow-hidden border border-line bg-white/[0.04] text-button text-zinc-100 hover:border-purple/50 hover:bg-purple/10"
+        whileTap={{ scale: 0.94 }}
+        transition={{ duration: 0.18 }}
+        onClick={() => {
+          if (!active) setBurst((value) => value + 1);
+          onReact?.();
+        }}
+        disabled={disabled}
+        type="button"
+      >
+        <span className="mr-2">{emotion.emoji}</span>
+        {emotion.label}
+        <span className="pointer-events-none absolute inset-0">
+          {particles.map((_, index) => (
+            <motion.span
+              className="absolute left-1/2 top-1/2 opacity-0"
+              key={`${burst}-${index}`}
+              initial={{ opacity: 0, x: 0, y: 0, scale: 0.7 }}
+              animate={
+                burst
+                  ? {
+                      opacity: [0, 1, 0],
+                      x: [0, (index - 3.5) * 9],
+                      y: [0, -28 - (index % 3) * 10],
+                      scale: [0.7, 1.2, 0.7]
+                    }
+                  : undefined
+              }
+              transition={{ duration: 0.6 }}
+            >
+              {emotion.emoji}
+            </motion.span>
+          ))}
+        </span>
+      </motion.button>
+
+      <AnimatePresence>
+        {active ? (
+          <motion.div
+            className="mt-2 rounded-card border border-acid/30 bg-ink/92 p-3 text-meta text-zinc-100 shadow-acid"
+            initial={{ opacity: 0, scale: 0.94, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -4 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
           >
-            {emotion.emoji}
-          </motion.span>
-        ))}
-      </span>
-    </motion.button>
+            {emotion.message}
+            <Link className="mt-2 block text-label text-acid" href="/feedback">
+              去反馈
+            </Link>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 }
 
