@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Bookmark, Edit3 } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AvatarPicker } from "@/components/avatar-picker";
 import { BrandMark } from "@/components/brand-mark";
+import NicknameInput from "@/components/nickname-input";
 import { RichContent } from "@/components/rich-content";
 import { StatsCard } from "@/components/stats-card";
 import { getLevelInfo } from "@/lib/levels";
@@ -36,13 +37,21 @@ export default function ProfilePage() {
     return () => window.removeEventListener("pofang:storage-change", refresh);
   }, []);
 
-  async function saveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const next = await updateCurrentUserProfile({ nickname, avatar_url: avatar });
+  async function saveAvatar() {
+    const next = await updateCurrentUserProfile({ avatar_url: avatar });
     setUser(next);
     setNickname(next?.nickname ?? nickname);
     setAvatar(next?.avatar_url ?? avatar);
     setEditing(false);
+  }
+
+  async function handleNicknameSaved(next: LocalUser | null) {
+    if (next) {
+      setUser(next);
+      setNickname(next.nickname);
+      setAvatar(next.avatar_url);
+    }
+    await refresh();
   }
 
   async function selectAvatar(nextAvatar: string) {
@@ -84,16 +93,13 @@ export default function ProfilePage() {
         </div>
 
         {editing ? (
-          <form className="mt-5 space-y-4" onSubmit={saveProfile}>
-            <input
-              className="h-11 w-full rounded-button border border-line bg-ink/70 px-4 text-body text-white outline-none focus:border-acid"
-              maxLength={12}
-              onChange={(event) => setNickname(event.target.value)}
-              value={nickname}
-            />
+          <div className="mt-5 space-y-4">
+            <NicknameInput onSaved={handleNicknameSaved} />
             <AvatarPicker selected={avatar} onSelect={selectAvatar} />
-            <button className="app-button w-full bg-acid text-ink">保存资料</button>
-          </form>
+            <button className="app-button w-full bg-acid text-ink" onClick={saveAvatar} type="button">
+              保存头像
+            </button>
+          </div>
         ) : null}
 
         <div className="mt-5">
