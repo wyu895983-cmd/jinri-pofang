@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>今日破防 UI Preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #080812;
+        --panel: rgba(18, 18, 31, 0.78);
+        --line: rgba(255, 255, 255, 0.1);
+        --muted: #a1a1aa;
+        --acid: #b8ff3d;
+        --neon: #ff4fd8;
+        --violet: #8b5cf6;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 12% 8%, rgba(255, 79, 216, 0.16), transparent 30rem),
+          radial-gradient(circle at 88% 16%, rgba(184, 255, 61, 0.1), transparent 22rem),
+          var(--ink);
+        color: #f5f3ff;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        border-bottom: 1px solid var(--line);
+        background: rgba(8, 8, 18, 0.78);
+        backdrop-filter: blur(18px);
+      }
+      nav,
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 0;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 19px;
+        font-weight: 900;
+      }
+      .logo {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--neon);
+        box-shadow: 0 0 36px rgba(255, 79, 216, 0.24);
+      }
+      .navlinks {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .navlinks a,
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 13px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 750;
+        cursor: pointer;
+      }
+      .navlinks a {
+        color: #d4d4d8;
+      }
+      .navlinks a:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .primary {
+        background: var(--acid);
+        color: var(--ink) !important;
+      }
+      main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 24px;
+        padding: 26px 0 64px;
+      }
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--acid);
+        font-size: 14px;
+        font-weight: 900;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(34px, 6vw, 56px);
+        line-height: 0.95;
+        letter-spacing: 0;
+      }
+      h2 {
+        margin: 0 0 16px;
+        font-size: 20px;
+      }
+      .topbar {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      .glass {
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 12px;
+        background: var(--panel);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(18px);
+      }
+      .feed {
+        display: grid;
+        gap: 16px;
+      }
+      .post {
+        padding: 18px;
+      }
+      .post:hover {
+        border-color: rgba(255, 79, 216, 0.45);
+      }
+      .post-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .name {
+        margin: 0;
+        font-weight: 900;
+      }
+      .meta {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .pill {
+        align-self: start;
+        border: 1px solid rgba(184, 255, 61, 0.3);
+        border-radius: 8px;
+        background: rgba(184, 255, 61, 0.1);
+        color: var(--acid);
+        padding: 6px 9px;
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .content {
+        margin: 0;
+        color: #f4f4f5;
+        font-size: 19px;
+        line-height: 1.7;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .actions button {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: #f4f4f5;
+      }
+      .actions button:hover {
+        border-color: rgba(255, 79, 216, 0.55);
+        background: rgba(255, 79, 216, 0.12);
+      }
+      aside {
+        display: grid;
+        align-content: start;
+        gap: 16px;
+      }
+      .panel {
+        padding: 20px;
+      }
+      .rule {
+        display: flex;
+        gap: 10px;
+        margin: 13px 0;
+        color: #d4d4d8;
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat {
+        padding: 15px;
+      }
+      .stat small {
+        display: block;
+        color: var(--muted);
+      }
+      .stat strong {
+        display: block;
+        margin-top: 5px;
+        color: white;
+        font-size: 25px;
+      }
+      .bar {
+        overflow: hidden;
+        height: 12px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .bar span {
+        display: block;
+        width: 58%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--neon), var(--violet), var(--acid));
+      }
+      .rank {
+        display: grid;
+        gap: 10px;
+      }
+      .rank-item {
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.045);
+        padding: 12px;
+      }
+      .rank-item b {
+        color: white;
+      }
+      .rank-item p {
+        margin: 6px 0 0;
+        color: #d4d4d8;
+        font-size: 13px;
+      }
+      @media (max-width: 860px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+        .navlinks a:not(.primary) {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a class="brand" href="#">
+          <span class="logo">破</span>
+          <span>今日破防</span>
+        </a>
+        <div class="navlinks">
+          <a href="#">Feed</a>
+          <a href="#">排行榜</a>
+          <a class="primary" href="#">开喷</a>
+          <a href="#">我的</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section>
+        <div class="topbar">
+          <div>
+            <p class="eyebrow">今日情绪广场</p>
+            <h1>今天谁又绷不住了？</h1>
+          </div>
+          <a class="primary" style="border-radius: 8px; padding: 13px 16px; font-weight: 900" href="#">我要开喷</a>
+        </div>
+
+        <div class="feed">
+          <article class="glass post">
+            <div class="post-head">
+              <div>
+                <p class="name">加班酸菜鱼</p>
+                <p class="meta">Lv10 · 阴阳大师 · 8 分钟前</p>
+              </div>
+              <span class="pill">128 赞</span>
+            </div>
+            <p class="content">老板说“这个需求很简单”的时候，我就知道今晚的月亮要陪我一起上线。</p>
+            <div class="actions">
+              <button>😂 笑死</button>
+              <button>😭 共鸣</button>
+              <button>💀 破防</button>
+              <button>🔥 神吐槽</button>
+              <button style="margin-left: auto">💬 42</button>
+            </div>
+          </article>
+
+          <article class="glass post">
+            <div class="post-head">
+              <div>
+                <p class="name">地铁信号失踪案</p>
+                <p class="meta">Lv5 · 吐槽专员 · 21 分钟前</p>
+              </div>
+              <span class="pill">35 赞</span>
+            </div>
+            <p class="content">我手机不是没电，是在地铁里进入了电子版荒野求生。</p>
+            <div class="actions">
+              <button>😂 笑死</button>
+              <button>😭 共鸣</button>
+              <button>💀 破防</button>
+              <button>🔥 神吐槽</button>
+              <button style="margin-left: auto">💬 12</button>
+            </div>
+          </article>
+
+          <article class="glass post">
+            <div class="post-head">
+              <div>
+                <p class="name">周一受害者联盟</p>
+                <p class="meta">Lv1 · 实习怨种 · 1 小时前</p>
+              </div>
+              <span class="pill">7 赞</span>
+            </div>
+            <p class="content">周一早上的闹钟不是铃声，是命运给我的下马威。</p>
+            <div class="actions">
+              <button>😂 笑死</button>
+              <button>😭 共鸣</button>
+              <button>💀 破防</button>
+              <button>🔥 神吐槽</button>
+              <button style="margin-left: auto">💬 3</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <aside>
+        <section class="glass panel">
+          <h2>我的怨种档案</h2>
+          <p class="name">今天也很稳定地破防</p>
+          <p class="meta">Lv7 · 吐槽专员 · 还差 580 EXP 升级</p>
+          <div style="margin: 18px 0 8px" class="bar"><span></span></div>
+          <div class="stats">
+            <div class="glass stat"><small>今日怨气值</small><strong>16</strong></div>
+            <div class="glass stat"><small>连续登录</small><strong>9 天</strong></div>
+            <div class="glass stat"><small>总发帖</small><strong>48</strong></div>
+            <div class="glass stat"><small>总获赞</small><strong>1.2k</strong></div>
+          </div>
+        </section>
+
+        <section class="glass panel">
+          <h2>破防公约</h2>
+          <p class="rule">⚡ 每天 20 点怨气值，发一条扣 1 点。</p>
+          <p class="rule">🔥 发帖、评论、登录、被评论、获赞里程碑都能涨经验。</p>
+          <p class="rule">💬 第一版反应都算点赞，先把热闹跑起来。</p>
+        </section>
+
+        <section class="glass panel">
+          <h2>今日榜单</h2>
+          <div class="rank">
+            <div class="rank-item"><b>#1 加班酸菜鱼</b><p>神吐槽指数 128 赞</p></div>
+            <div class="rank-item"><b>#2 地铁信号失踪案</b><p>共鸣指数 35 赞</p></div>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </body>
+</html>

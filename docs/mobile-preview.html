@@ -1,0 +1,2253 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>今日破防 Mobile Preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #09090b;
+        --panel: rgba(18, 18, 26, 0.88);
+        --line: rgba(255, 255, 255, 0.08);
+        --muted: #a1a1aa;
+        --acid: #b6ff3b;
+        --neon: #7c3aed;
+        --violet: #7c3aed;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      @keyframes page-in {
+        from {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      @keyframes card-in {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes energy-breathe {
+        0%,
+        100% {
+          transform: scale(1);
+          box-shadow: 0 0 0 rgba(184, 255, 61, 0);
+        }
+        50% {
+          transform: scale(1.03);
+          box-shadow: 0 0 20px rgba(184, 255, 61, 0.24);
+        }
+      }
+      @keyframes heat-flow {
+        from {
+          transform: translateX(-120%);
+        }
+        to {
+          transform: translateX(120%);
+        }
+      }
+      @keyframes badge-glow {
+        0% {
+          box-shadow: 0 0 0 rgba(184, 255, 61, 0);
+        }
+        50% {
+          box-shadow: 0 0 24px rgba(184, 255, 61, 0.44);
+        }
+        100% {
+          box-shadow: 0 0 12px rgba(184, 255, 61, 0.16);
+        }
+      }
+      @keyframes soft-pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 rgba(184, 255, 61, 0);
+        }
+        50% {
+          box-shadow: 0 0 22px rgba(184, 255, 61, 0.22);
+        }
+      }
+      @keyframes glow-slide {
+        from {
+          transform: translateX(-120%);
+        }
+        to {
+          transform: translateX(120%);
+        }
+      }
+      @keyframes paper-fly {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+        }
+        18% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1) rotate(-14deg);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(120px, -460px) scale(0.35) rotate(680deg);
+        }
+      }
+      @keyframes hot-breathe {
+        0%,
+        100% {
+          filter: brightness(1);
+        }
+        50% {
+          filter: brightness(1.08);
+        }
+      }
+      @keyframes emoji-float {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.7);
+        }
+        20% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translate(var(--x), var(--y)) scale(1.25);
+        }
+      }
+      @keyframes badge-pop {
+        0% {
+          transform: scale(1);
+        }
+        45% {
+          transform: scale(1.22);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes badge-unpop {
+        0% {
+          transform: scale(1);
+        }
+        45% {
+          transform: scale(0.9);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes badge-plus {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, 8px) scale(0.7);
+        }
+        35% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -18px) scale(1.08);
+        }
+      }
+      @keyframes modal-in {
+        from {
+          opacity: 0;
+          transform: scale(0.8) translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          "PingFang SC", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 15% 10%, rgba(124, 58, 237, 0.2), transparent 24rem),
+          radial-gradient(circle at 85% 0%, rgba(184, 255, 61, 0.12), transparent 20rem),
+          #05050c;
+        color: #f4f4f5;
+        font-size: 16px;
+        line-height: 26px;
+      }
+      .stage {
+        min-height: 100vh;
+        display: grid;
+        place-items: start center;
+        padding: 20px;
+      }
+      .phone {
+        width: min(390px, 100%);
+        min-height: 844px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 30px;
+        background:
+          radial-gradient(circle at 20% 5%, rgba(255, 79, 216, 0.17), transparent 20rem),
+          radial-gradient(circle at 80% 12%, rgba(184, 255, 61, 0.1), transparent 16rem),
+          var(--ink);
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.46);
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        border-bottom: 1px solid var(--line);
+        background: rgba(8, 8, 18, 0.82);
+        backdrop-filter: blur(18px);
+      }
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: white;
+        text-decoration: none;
+        font-size: 17px;
+        font-weight: 900;
+      }
+      .logo {
+        width: 36px;
+        height: 36px;
+        filter: drop-shadow(0 0 14px rgba(182, 255, 59, 0.18));
+      }
+      .post-button {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 8px;
+        background: var(--acid);
+        color: var(--ink);
+        height: 44px;
+        min-height: 44px;
+        padding: 0 16px;
+        text-decoration: none;
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1;
+        transition:
+          transform 160ms ease,
+          filter 160ms ease;
+      }
+      .post-button::after,
+      .submit-post::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
+        transform: translateX(-120%);
+        animation: glow-slide 2.8s ease-in-out infinite;
+      }
+      .post-button:active {
+        transform: scale(0.94);
+      }
+      main {
+        padding: 24px 20px 86px;
+      }
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--acid);
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 500;
+      }
+      h1 {
+        margin: 0;
+        font-size: 32px;
+        line-height: 40px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        margin: 24px -20px 16px;
+        padding: 0 20px 4px;
+      }
+      .tabs span {
+        flex: 0 0 auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 8px 12px;
+        color: #d4d4d8;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .tabs span:first-child {
+        border-color: rgba(184, 255, 61, 0.35);
+        background: rgba(184, 255, 61, 0.12);
+        color: var(--acid);
+      }
+      .glass {
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 20px;
+        background: var(--panel);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(18px);
+      }
+      .profile-strip {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 14px;
+        padding: 14px;
+      }
+      .profile-strip b {
+        display: block;
+        font-size: 15px;
+      }
+      .profile-strip small {
+        color: var(--muted);
+      }
+      .energy {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: rgba(184, 255, 61, 0.12);
+        color: var(--acid);
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 900;
+        animation: energy-breathe 2.4s ease-in-out infinite;
+        transform-origin: center;
+      }
+      .screen {
+        display: none;
+      }
+      .screen.active {
+        display: block;
+        animation: page-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      }
+      .feed {
+        display: grid;
+        gap: 14px;
+      }
+      .post {
+        position: relative;
+        overflow: hidden;
+        padding: 20px;
+        animation: card-in 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
+      }
+      .post:nth-child(2) {
+        animation-delay: 50ms;
+      }
+      .post:nth-child(3) {
+        animation-delay: 100ms;
+      }
+      .post:nth-child(4) {
+        animation-delay: 150ms;
+      }
+      .post:active {
+        transform: scale(0.985);
+        background: rgba(24, 24, 42, 0.92);
+      }
+      .hot-red,
+      .hot-orange,
+      .hot-gold,
+      .hot-flow {
+        animation: hot-breathe 2.4s ease-in-out infinite;
+      }
+      .hot-orange {
+        border-color: rgba(251, 146, 60, 0.32);
+        box-shadow:
+          0 18px 60px rgba(0, 0, 0, 0.25),
+          0 0 26px rgba(251, 146, 60, 0.16);
+      }
+      .hot-red {
+        border-color: rgba(248, 113, 113, 0.42);
+        box-shadow:
+          0 18px 60px rgba(0, 0, 0, 0.25),
+          0 0 34px rgba(248, 113, 113, 0.22);
+      }
+      .hot-flow {
+        border-color: rgba(255, 156, 66, 0.5);
+      }
+      .hot-flow::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(105deg, transparent 10%, rgba(255, 196, 92, 0.18), transparent 42%);
+        pointer-events: none;
+        animation: heat-flow 2.6s ease-in-out infinite;
+      }
+      .hot-gold {
+        border-color: rgba(250, 204, 21, 0.5);
+        box-shadow:
+          0 18px 60px rgba(0, 0, 0, 0.25),
+          0 0 42px rgba(250, 204, 21, 0.26);
+      }
+      .hot-label {
+        position: absolute;
+        right: 18px;
+        top: 46px;
+        z-index: 1;
+        border-radius: 999px;
+        background: rgba(250, 204, 21, 0.18);
+        color: #fde68a;
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: 900;
+        box-shadow: 0 0 18px rgba(250, 204, 21, 0.22);
+      }
+      .post-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .name {
+        margin: 0;
+        font-weight: 900;
+      }
+      .meta {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .pill {
+        z-index: 1;
+        position: relative;
+        align-self: start;
+        border: 1px solid rgba(184, 255, 61, 0.3);
+        border-radius: 12px;
+        background: rgba(184, 255, 61, 0.1);
+        color: var(--acid);
+        padding: 4px 8px;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 500;
+        white-space: nowrap;
+        cursor: pointer;
+        transition:
+          background 160ms ease,
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          color 160ms ease;
+      }
+      .pill.liked {
+        border-color: rgba(184, 255, 61, 0.75);
+        background: rgba(184, 255, 61, 0.25);
+        color: white;
+        box-shadow: 0 0 18px rgba(184, 255, 61, 0.28);
+      }
+      .pill.pop {
+        animation: badge-pop 280ms ease-out, badge-glow 300ms ease-out;
+      }
+      .pill.unpop {
+        animation: badge-unpop 220ms ease-out;
+      }
+      .badge-plus {
+        position: absolute;
+        z-index: 2;
+        left: 50%;
+        top: -16px;
+        color: var(--acid);
+        font-size: 12px;
+        font-weight: 950;
+        pointer-events: none;
+        animation: badge-plus 500ms ease-out forwards;
+      }
+      .content {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        color: #f4f4f5;
+        font-size: 16px;
+        line-height: 26px;
+      }
+      .actions {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 20px;
+      }
+      button {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        min-height: 44px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.055);
+        color: #f4f4f5;
+        padding: 0 16px;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 500;
+        transition:
+          transform 150ms ease,
+          border-color 160ms ease,
+          background 160ms ease,
+          color 160ms ease;
+      }
+      button:active {
+        transform: scale(0.94);
+        background: rgba(255, 79, 216, 0.16);
+        border-color: rgba(255, 79, 216, 0.58);
+      }
+      .comment-row {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        margin-top: 12px;
+        color: #d4d4d8;
+        font-size: 13px;
+      }
+      .bottom-nav {
+        position: sticky;
+        bottom: 0;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-top: 1px solid var(--line);
+        background: rgba(8, 8, 18, 0.88);
+        backdrop-filter: blur(18px);
+      }
+      .bottom-nav a {
+        position: relative;
+        padding: 12px 4px;
+        color: #d4d4d8;
+        text-align: center;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 800;
+        transition:
+          color 180ms ease,
+          transform 180ms ease;
+      }
+      .bottom-nav a.active {
+        color: var(--acid);
+        transform: translateY(-2px);
+      }
+      .bottom-nav a.active::before {
+        content: "";
+        position: absolute;
+        top: 7px;
+        left: 50%;
+        width: 22px;
+        height: 3px;
+        border-radius: 999px;
+        background: var(--acid);
+        box-shadow: 0 0 16px rgba(184, 255, 61, 0.45);
+        transform: translateX(-50%);
+      }
+      .rank-hero {
+        margin-bottom: 16px;
+        padding: 16px;
+      }
+      .rank-hero-top {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .rank-hero h2 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.15;
+      }
+      .rank-hero p {
+        margin: 8px 0 0;
+        color: #d4d4d8;
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .crown {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 12px;
+        background: rgba(184, 255, 61, 0.13);
+        color: var(--acid);
+        font-size: 23px;
+      }
+      .rank-section {
+        margin-top: 14px;
+        padding: 15px;
+      }
+      .rank-section h3 {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 0 0 12px;
+        font-size: 17px;
+      }
+      .rank-section h3 span {
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--muted);
+        padding: 5px 8px;
+        font-size: 11px;
+        font-weight: 850;
+      }
+      .rank-list {
+        display: grid;
+        gap: 10px;
+      }
+      .rank-card {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.045);
+        padding: 11px;
+        animation: card-in 320ms ease both;
+        transition:
+          transform 170ms ease,
+          background 170ms ease;
+      }
+      .rank-card:nth-child(2) {
+        animation-delay: 65ms;
+      }
+      .rank-card:nth-child(3) {
+        animation-delay: 120ms;
+      }
+      .rank-card:active {
+        transform: scale(0.985);
+        background: rgba(255, 255, 255, 0.07);
+      }
+      .rank-no {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 8px;
+        background: rgba(255, 79, 216, 0.14);
+        color: #ffd7f6;
+        font-size: 13px;
+        font-weight: 950;
+      }
+      .rank-card:first-child .rank-no {
+        background: var(--acid);
+        color: var(--ink);
+      }
+      .rank-card.gold {
+        border-color: rgba(250, 204, 21, 0.38);
+        background: linear-gradient(135deg, rgba(250, 204, 21, 0.16), rgba(255, 255, 255, 0.04));
+        box-shadow: 0 0 28px rgba(250, 204, 21, 0.14);
+      }
+      .rank-card.silver {
+        border-color: rgba(226, 232, 240, 0.28);
+        background: linear-gradient(135deg, rgba(226, 232, 240, 0.12), rgba(255, 255, 255, 0.04));
+      }
+      .rank-card.bronze {
+        border-color: rgba(251, 146, 60, 0.28);
+        background: linear-gradient(135deg, rgba(251, 146, 60, 0.12), rgba(255, 255, 255, 0.04));
+      }
+      .rank-main b {
+        display: block;
+        color: white;
+        font-size: 14px;
+      }
+      .rank-main small {
+        display: -webkit-box;
+        margin-top: 4px;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+      }
+      .rank-score {
+        color: var(--acid);
+        font-size: 13px;
+        font-weight: 950;
+        white-space: nowrap;
+      }
+      .level-card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+        align-items: center;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.045);
+        padding: 12px;
+        animation: card-in 320ms ease both;
+        transition:
+          transform 170ms ease,
+          background 170ms ease;
+      }
+      .level-card:active {
+        transform: scale(0.985);
+        background: rgba(255, 255, 255, 0.07);
+      }
+      .avatar {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--neon), var(--violet));
+        font-weight: 950;
+      }
+      .level-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .level-row b {
+        font-size: 14px;
+      }
+      .level-row span {
+        color: var(--acid);
+        font-size: 13px;
+        font-weight: 950;
+      }
+      .compose-card {
+        margin-top: 18px;
+        padding: 16px;
+      }
+      .compose-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 13px;
+      }
+      .compose-top b {
+        font-size: 15px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 156px;
+        resize: none;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        background: rgba(8, 8, 18, 0.76);
+        color: white;
+        padding: 14px;
+        font: inherit;
+        font-size: 17px;
+        line-height: 1.55;
+        outline: none;
+      }
+      textarea::placeholder {
+        color: #71717a;
+      }
+      .compose-tools {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .char-count {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .submit-post {
+        position: relative;
+        overflow: hidden;
+        border: 0;
+        background: var(--acid);
+        color: var(--ink);
+        min-width: 96px;
+        font-weight: 950;
+      }
+      .quick-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 13px;
+      }
+      .quick-tags span {
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #d4d4d8;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-weight: 850;
+        transition:
+          transform 150ms ease,
+          background 150ms ease;
+      }
+      .quick-tags span:active {
+        transform: scale(0.96);
+        background: rgba(184, 255, 61, 0.12);
+      }
+      .sticker-tray {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .sticker-button {
+        display: grid;
+        aspect-ratio: 1;
+        min-height: 0;
+        place-items: center;
+        overflow: hidden;
+        border-radius: 13px;
+        padding: 4px;
+      }
+      .sticker-button img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .inline-sticker {
+        display: inline-block;
+        width: 58px;
+        height: 58px;
+        margin: 0 4px;
+        object-fit: contain;
+        vertical-align: middle;
+      }
+      .break-meter {
+        margin: 14px 0 0;
+        border: 1px solid rgba(184, 255, 61, 0.16);
+        border-radius: 16px;
+        background:
+          linear-gradient(135deg, rgba(124, 58, 237, 0.16), rgba(184, 255, 61, 0.06)),
+          rgba(255, 255, 255, 0.035);
+        padding: 12px;
+      }
+      .break-meter-top,
+      .break-meter-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .break-meter-top span,
+      .break-meter-bottom span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 850;
+      }
+      .break-score {
+        color: var(--acid);
+        font-size: 22px;
+        font-weight: 950;
+        line-height: 28px;
+        text-shadow: 0 0 18px rgba(184, 255, 61, 0.28);
+      }
+      .break-bar {
+        overflow: hidden;
+        height: 9px;
+        margin: 10px 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .break-bar span {
+        display: block;
+        width: 66%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--neon), #ff4fd8, var(--acid));
+        transition: width 280ms ease;
+      }
+      .break-rank {
+        border-radius: 999px;
+        background: rgba(184, 255, 61, 0.14);
+        color: var(--acid);
+        padding: 5px 9px;
+        font-size: 12px;
+        font-weight: 950;
+      }
+      .tips-card {
+        margin-top: 14px;
+        padding: 15px;
+      }
+      .tips-card p {
+        margin: 9px 0 0;
+        color: #d4d4d8;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .profile-head {
+        margin-top: 18px;
+        padding: 16px;
+        animation: card-in 320ms ease both;
+      }
+      .profile-line {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .big-avatar {
+        display: grid;
+        width: 58px;
+        height: 58px;
+        place-items: center;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--neon), var(--violet));
+        font-size: 22px;
+        font-weight: 950;
+        box-shadow: 0 0 34px rgba(255, 79, 216, 0.22);
+      }
+      .profile-name {
+        margin: 0;
+        font-size: 21px;
+        font-weight: 950;
+      }
+      .title-pill {
+        display: inline-block;
+        margin-top: 6px;
+        border: 1px solid rgba(184, 255, 61, 0.28);
+        border-radius: 999px;
+        background: rgba(184, 255, 61, 0.1);
+        color: var(--acid);
+        padding: 5px 8px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .progress-label {
+        display: flex;
+        justify-content: space-between;
+        margin: 18px 0 8px;
+        color: #d4d4d8;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .progress {
+        overflow: hidden;
+        height: 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .progress span {
+        display: block;
+        width: 58%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--neon), var(--violet), var(--acid));
+        transition: width 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      .mini-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .mini-stat {
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.045);
+        padding: 12px;
+        transition:
+          transform 170ms ease,
+          background 170ms ease;
+      }
+      .mini-stat:active {
+        transform: scale(0.98);
+        background: rgba(255, 255, 255, 0.07);
+      }
+      .mini-stat small {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .mini-stat b {
+        display: block;
+        margin-top: 4px;
+        font-size: 20px;
+      }
+      .history-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 18px 0 12px;
+      }
+      .history-title h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .history-title span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .badge-wall {
+        margin-top: 14px;
+        padding: 15px;
+      }
+      .badge-wall h2 {
+        margin: 0 0 12px;
+        font-size: 18px;
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .badges span {
+        border: 1px solid rgba(184, 255, 61, 0.18);
+        border-radius: 999px;
+        background: rgba(184, 255, 61, 0.08);
+        color: #eaffc4;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 850;
+        box-shadow: 0 0 16px rgba(184, 255, 61, 0.08);
+      }
+      .detail-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .back-chip {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #d4d4d8;
+        padding: 8px 11px;
+        font-size: 13px;
+        font-weight: 900;
+      }
+      .detail-post {
+        padding: 16px;
+      }
+      .detail-post .content {
+        font-size: 19px;
+      }
+      .reaction-summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-top: 15px;
+      }
+      .reaction-summary span {
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.055);
+        padding: 9px 5px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .comment-composer {
+        margin-top: 14px;
+        padding: 13px;
+      }
+      .comment-composer textarea {
+        min-height: 86px;
+        font-size: 15px;
+      }
+      .comment-tools {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .comment-tools small {
+        color: var(--muted);
+        font-weight: 800;
+      }
+      .comment-submit {
+        border: 0;
+        background: var(--acid);
+        color: var(--ink);
+        min-width: 78px;
+        font-weight: 950;
+      }
+      .comments-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 18px 0 12px;
+      }
+      .comments-title h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .comments-title span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 850;
+      }
+      .comment-list {
+        display: grid;
+        gap: 10px;
+      }
+      .comment-card {
+        padding: 13px;
+        animation: card-in 320ms ease both;
+      }
+      .comment-card.god-reply {
+        border-color: rgba(182, 255, 59, 0.35);
+        background: rgba(182, 255, 59, 0.04);
+        box-shadow: 0 0 24px rgba(182, 255, 59, 0.14);
+      }
+      .comment-card.daily-god-reply {
+        border-color: rgba(250, 204, 21, 0.55);
+        background: rgba(250, 204, 21, 0.055);
+        box-shadow: 0 0 28px rgba(250, 204, 21, 0.16);
+        animation: card-in 320ms ease both, hot-breathe 2.4s ease-in-out infinite;
+      }
+      .comment-card:nth-child(2) {
+        animation-delay: 60ms;
+      }
+      .comment-card:nth-child(3) {
+        animation-delay: 110ms;
+      }
+      .comment-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .comment-head b {
+        font-size: 14px;
+      }
+      .comment-head small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .comment-card p {
+        margin: 0;
+        color: #e4e4e7;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      .comment-foot {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 850;
+      }
+      .comment-like {
+        min-height: 32px;
+        border-radius: 12px;
+        padding: 0 12px;
+        font-size: 12px;
+      }
+      .comment-like.liked {
+        border-color: rgba(182, 255, 59, 0.45);
+        background: rgba(182, 255, 59, 0.12);
+        color: var(--acid);
+      }
+      .reply-box {
+        margin-top: 12px;
+        border-left: 1px solid var(--line);
+        padding-left: 12px;
+      }
+      .reply-box textarea {
+        min-height: 68px;
+        font-size: 14px;
+      }
+      .reply-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 12px;
+        border-left: 1px solid var(--line);
+        padding-left: 12px;
+      }
+      .reply-card {
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.035);
+        padding: 12px;
+      }
+      .featured-tag {
+        float: right;
+        margin-left: 8px;
+        border: 1px solid rgba(182, 255, 59, 0.4);
+        border-radius: 999px;
+        background: rgba(182, 255, 59, 0.1);
+        color: var(--acid);
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .featured-tag.gold {
+        border-color: rgba(250, 204, 21, 0.6);
+        background: rgba(250, 204, 21, 0.14);
+        color: #fde68a;
+      }
+      .paper-ball {
+        position: fixed;
+        z-index: 20;
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 32% 30%, #ffffff, #d9d9e6 52%, #a9a9bb);
+        color: #52525b;
+        font-size: 20px;
+        box-shadow:
+          0 14px 36px rgba(0, 0, 0, 0.35),
+          inset -8px -9px 16px rgba(0, 0, 0, 0.12);
+        pointer-events: none;
+        animation: paper-fly 760ms cubic-bezier(0.16, 0.84, 0.32, 1) forwards;
+      }
+      .emoji-particle {
+        position: fixed;
+        z-index: 30;
+        pointer-events: none;
+        animation: emoji-float 600ms ease-out forwards;
+      }
+      .badge-particle {
+        position: fixed;
+        z-index: 30;
+        color: var(--acid);
+        font-size: 12px;
+        font-weight: 950;
+        pointer-events: none;
+        animation: emoji-float 500ms ease-out forwards;
+      }
+      .level-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: none;
+        place-items: center;
+        padding: 28px;
+        background: rgba(8, 8, 18, 0.7);
+        backdrop-filter: blur(12px);
+      }
+      .level-modal.active {
+        display: grid;
+      }
+      .level-card-modal {
+        position: relative;
+        overflow: hidden;
+        width: min(330px, 100%);
+        border: 1px solid rgba(184, 255, 61, 0.3);
+        border-radius: 20px;
+        background: rgba(18, 18, 31, 0.95);
+        box-shadow: 0 0 48px rgba(255, 79, 216, 0.22);
+        padding: 28px;
+        text-align: center;
+        animation: modal-in 360ms ease-out both;
+      }
+      .level-card-modal h2 {
+        margin: 10px 0 0;
+        color: var(--acid);
+      }
+      .level-number {
+        margin: 8px 0;
+        font-size: 58px;
+        font-weight: 950;
+      }
+      .popo {
+        position: fixed;
+        right: max(20px, calc((100vw - 390px) / 2 + 18px));
+        bottom: 86px;
+        z-index: 45;
+        display: grid;
+        width: 72px;
+        height: 72px;
+        place-items: center;
+        border: 0;
+        border-radius: 20px;
+        background: transparent;
+        padding: 0;
+        box-shadow:
+          0 14px 34px rgba(0, 0, 0, 0.36),
+          0 0 24px rgba(184, 255, 61, 0.18);
+        cursor: pointer;
+        animation: energy-breathe 3s ease-in-out infinite;
+      }
+      .popo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 0 18px rgba(184, 255, 61, 0.28));
+        pointer-events: none;
+      }
+      .popo::after {
+        content: "1";
+        position: absolute;
+        right: 5px;
+        top: 6px;
+        display: grid;
+        width: 22px;
+        height: 22px;
+        place-items: center;
+        border: 2px solid #07100a;
+        border-radius: 50%;
+        background: #188cff;
+        color: white;
+        font-size: 12px;
+        font-weight: 950;
+      }
+      .popo-bubble {
+        position: fixed;
+        right: max(82px, calc((100vw - 390px) / 2 + 80px));
+        bottom: 94px;
+        z-index: 45;
+        display: none;
+        max-width: 210px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 18px;
+        background: rgba(18, 18, 26, 0.94);
+        color: white;
+        padding: 10px 12px;
+        font-size: 13px;
+        line-height: 18px;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.36);
+        backdrop-filter: blur(16px);
+      }
+      .popo-bubble.active {
+        display: block;
+        animation: page-in 260ms ease both;
+      }
+      .confetti {
+        position: absolute;
+        opacity: 0.9;
+      }
+      @media (max-width: 430px) {
+        .stage {
+          display: block;
+          padding: 0;
+        }
+        .phone {
+          width: 100%;
+          min-height: 100vh;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="phone">
+        <header>
+          <nav>
+            <a class="brand" href="/">
+              <svg class="logo" viewBox="0 0 512 512" fill="none" aria-hidden="true">
+                <rect width="512" height="512" rx="112" fill="#09090B"></rect>
+                <path d="M104 159C104 119.236 136.236 87 176 87H336C375.764 87 408 119.236 408 159V271C408 310.764 375.764 343 336 343H276L211.4 416.06C198.622 430.51 175 421.474 175 402.179V343C135.236 343 104 310.764 104 271V159Z" fill="#B6FF3B"></path>
+                <path d="M253 116L230 188H268L242 283" stroke="#09090B" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M281 130L258 206H300L269 310" stroke="#7C3AED" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"></path>
+                <circle cx="342" cy="131" r="10" fill="#7C3AED"></circle>
+                <circle cx="365" cy="162" r="7" fill="#7C3AED"></circle>
+              </svg>
+              <span>今日破防</span>
+            </a>
+            <a class="post-button" href="#create" data-screen="create-screen">开喷</a>
+          </nav>
+        </header>
+
+        <main>
+          <section class="screen active" id="feed-screen">
+            <p class="eyebrow">今日情绪广场</p>
+            <h1><span id="dynamic-headline">今天谁又绷不住了？</span><span style="color: var(--acid)">|</span></h1>
+
+            <section class="glass profile-strip">
+              <div>
+                <b>今天也很稳定地破防</b>
+                <small>Lv7 · 吐槽专员 · 还差 580 EXP</small>
+              </div>
+              <span class="energy">怨气 16</span>
+            </section>
+
+          <section class="feed" id="feed-list">
+              <article class="glass post hot-gold hot-flow js-open-detail">
+                <div class="post-head">
+                  <div>
+                    <p class="name">加班酸菜鱼</p>
+                    <p class="meta">Lv10 · 阴阳大师 · 8分钟前</p>
+                  </div>
+                  <span class="pill">520 赞</span>
+                </div>
+                <span class="hot-label">🔥 热门</span>
+                <p class="content">老板说“这个需求很简单”的时候，我就知道今晚的月亮要陪我一起上线。</p>
+                <div class="actions">
+                  <button>😂 笑死</button>
+                  <button>😭 共鸣</button>
+                  <button>💀 破防</button>
+                  <button>🔥 神吐槽</button>
+                </div>
+                <div class="comment-row">
+                  <span>这条已经有点东西了</span>
+                  <b>💬 42</b>
+                </div>
+              </article>
+
+              <article class="glass post hot-orange js-open-detail">
+                <div class="post-head">
+                  <div>
+                    <p class="name">地铁信号失踪案</p>
+                    <p class="meta">Lv5 · 吐槽专员 · 21分钟前</p>
+                  </div>
+                  <span class="pill">58 赞</span>
+                </div>
+                <p class="content">我手机不是没电，是在地铁里进入了电子版荒野求生。</p>
+                <div class="actions">
+                  <button>😂 笑死</button>
+                  <button>😭 共鸣</button>
+                  <button>💀 破防</button>
+                  <button>🔥 神吐槽</button>
+                </div>
+                <div class="comment-row">
+                  <span>共鸣浓度过高</span>
+                  <b>💬 12</b>
+                </div>
+              </article>
+            </section>
+          </section>
+
+          <section class="screen" id="leaderboard-screen">
+            <p class="eyebrow">今日榜单</p>
+            <h1>互联网情绪战报</h1>
+
+            <section class="glass rank-hero">
+              <div class="rank-hero-top">
+                <div>
+                  <h2>今日神吐槽</h2>
+                  <p>加班酸菜鱼凭借一句“今晚月亮陪我上线”，暂时登顶。</p>
+                </div>
+                <span class="crown">🏆</span>
+              </div>
+            </section>
+
+            <section class="glass rank-section">
+              <h3>🔥 今日神吐槽 <span>按点赞</span></h3>
+              <div class="rank-list">
+                <div class="rank-card gold">
+                  <span class="rank-no">🏆</span>
+                  <div class="rank-main">
+                    <b>加班酸菜鱼</b>
+                    <small>老板说“这个需求很简单”的时候，我就知道今晚的月亮要陪我一起上线。</small>
+                  </div>
+                  <span class="rank-score">520 赞</span>
+                </div>
+                <div class="rank-card silver">
+                  <span class="rank-no">🥈</span>
+                  <div class="rank-main">
+                    <b>地铁信号失踪案</b>
+                    <small>我手机不是没电，是在地铁里进入了电子版荒野求生。</small>
+                  </div>
+                  <span class="rank-score">58 赞</span>
+                </div>
+                <div class="rank-card bronze">
+                  <span class="rank-no">🥉</span>
+                  <div class="rank-main">
+                    <b>周一受害者联盟</b>
+                    <small>周一早上的闹钟不是铃声，是命运给我的下马威。</small>
+                  </div>
+                  <span class="rank-score">7 赞</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="glass rank-section">
+              <h3>💀 今日破防王 <span>按评论</span></h3>
+              <div class="rank-list">
+                <div class="rank-card gold">
+                  <span class="rank-no">🏆</span>
+                  <div class="rank-main">
+                    <b>加班酸菜鱼</b>
+                    <small>一句话唤醒全网打工人的沉默。</small>
+                  </div>
+                  <span class="rank-score">42 评</span>
+                </div>
+                <div class="rank-card silver">
+                  <span class="rank-no">🥈</span>
+                  <div class="rank-main">
+                    <b>外卖等到花谢</b>
+                    <small>骑手离我 200 米，已经离了 20 分钟。</small>
+                  </div>
+                  <span class="rank-score">19 评</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="glass rank-section">
+              <h3>⚡ 总经验榜 <span>等级压制</span></h3>
+              <div class="rank-list">
+                <div class="level-card">
+                  <span class="avatar">酸</span>
+                  <div>
+                    <div class="level-row"><b>加班酸菜鱼</b><span>10480 EXP</span></div>
+                    <small class="meta">Lv10 · 阴阳大师 · 连续登录 21 天</small>
+                  </div>
+                </div>
+                <div class="level-card">
+                  <span class="avatar">信</span>
+                  <div>
+                    <div class="level-row"><b>地铁信号失踪案</b><span>9210 EXP</span></div>
+                    <small class="meta">Lv9 · 吐槽专员 · 今日获赞 35</small>
+                  </div>
+                </div>
+                <div class="level-card">
+                  <span class="avatar">周</span>
+                  <div>
+                    <div class="level-row"><b>周一受害者联盟</b><span>6800 EXP</span></div>
+                    <small class="meta">Lv9 · 吐槽专员 · 怨气值 4</small>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <section class="screen" id="create-screen">
+            <p class="eyebrow">发布吐槽</p>
+            <h1>把这口气，优雅地吐出去</h1>
+
+            <section class="glass compose-card">
+              <div class="compose-top">
+                <div>
+                  <b>今日可用怨气值</b>
+                  <p class="meta">发布 1 条消耗 1 点，成功获得 2 EXP</p>
+                </div>
+                <span class="energy">16 / 20</span>
+              </div>
+              <textarea id="compose-textarea" maxlength="100" placeholder="100 字以内，精准破防。比如：老板说这个需求很简单的时候，我就知道今晚不简单。">周一早上的咖啡不是提神，是给灵魂续一秒。</textarea>
+              <div class="break-meter">
+                <div class="break-meter-top">
+                  <span>破防指数</span>
+                  <b class="break-score" id="break-score">66%</b>
+                </div>
+                <div class="break-bar"><span id="break-bar"></span></div>
+                <div class="break-meter-bottom">
+                  <span>怨气等级</span>
+                  <b class="break-rank" id="break-rank">A级</b>
+                </div>
+              </div>
+              <div class="sticker-tray" data-sticker-tray data-target="#compose-textarea"></div>
+              <div class="compose-tools">
+                <span class="char-count" id="compose-count">24 / 100</span>
+                <button class="submit-post" id="launch-post" type="button">发射</button>
+              </div>
+              <div class="quick-tags">
+                <span># 上班哪有不疯的</span>
+                <span># 地铁生存报告</span>
+                <span># 今日小崩溃</span>
+              </div>
+            </section>
+
+            <section class="glass tips-card">
+              <b>发帖小规则</b>
+              <p>别太长，短句更有杀伤力。第一版先主打轻吐槽和共鸣，别把自己气出工伤。</p>
+            </section>
+          </section>
+
+          <section class="screen" id="profile-screen">
+            <p class="eyebrow">我的主页</p>
+            <h1>怨种成长档案</h1>
+
+            <section class="glass profile-head">
+              <div class="profile-line">
+                <span class="big-avatar">
+                  <svg viewBox="0 0 512 512" fill="none" aria-hidden="true" style="width: 42px; height: 42px">
+                    <path d="M104 159C104 119.236 136.236 87 176 87H336C375.764 87 408 119.236 408 159V271C408 310.764 375.764 343 336 343H276L211.4 416.06C198.622 430.51 175 421.474 175 402.179V343C135.236 343 104 310.764 104 271V159Z" fill="#B6FF3B"></path>
+                    <path d="M253 116L230 188H268L242 283" stroke="#09090B" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M281 130L258 206H300L269 310" stroke="#7C3AED" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                </span>
+                <div>
+                  <p class="profile-name">今天也很稳定地破防</p>
+                  <span class="title-pill">Lv7 · 吐槽专员</span>
+                </div>
+              </div>
+
+              <div class="progress-label">
+                <span>2500 EXP</span>
+                <span>还差 580 EXP 升 Lv8</span>
+              </div>
+              <div class="progress"><span></span></div>
+
+              <div class="mini-stats">
+                <div class="mini-stat"><small>今日怨气值</small><b>16</b></div>
+                <div class="mini-stat"><small>连续登录</small><b>9 天</b></div>
+                <div class="mini-stat"><small>总发帖</small><b>48</b></div>
+                <div class="mini-stat"><small>总获赞</small><b>1.2k</b></div>
+              </div>
+            </section>
+
+            <section class="glass badge-wall">
+              <h2>徽章墙</h2>
+              <div class="badges">
+                <span>🔥 共鸣制造机</span>
+                <span>💀 阴阳大师</span>
+                <span>🏆 神吐槽王</span>
+                <span>✨ 神回复</span>
+                <span>📈 连续登录7天</span>
+              </div>
+            </section>
+
+            <div class="history-title">
+              <h2>历史吐槽</h2>
+              <span>最近 3 条</span>
+            </div>
+
+            <section class="feed">
+              <article class="glass post">
+                <div class="post-head">
+                  <div>
+                    <p class="name">今天也很稳定地破防</p>
+                    <p class="meta">Lv7 · 吐槽专员 · 昨天 21:35</p>
+                  </div>
+                  <span class="pill">62 赞</span>
+                </div>
+                <p class="content">每次说“我简单改一下”，最后都能改出一个支线宇宙。</p>
+                <div class="comment-row">
+                  <span>获得 5 赞里程碑</span>
+                  <b>💬 18</b>
+                </div>
+              </article>
+
+              <article class="glass post">
+                <div class="post-head">
+                  <div>
+                    <p class="name">今天也很稳定地破防</p>
+                    <p class="meta">Lv7 · 吐槽专员 · 2 天前</p>
+                  </div>
+                  <span class="pill">28 赞</span>
+                </div>
+                <p class="content">会议纪要写完了，会议的意义还是没有找到。</p>
+                <div class="comment-row">
+                  <span>共鸣指数上升</span>
+                  <b>💬 7</b>
+                </div>
+              </article>
+            </section>
+          </section>
+
+          <section class="screen" id="detail-screen">
+            <div class="detail-top">
+              <button class="back-chip" type="button">← 返回广场</button>
+              <div>
+                <p class="eyebrow" style="margin: 0">吐槽详情</p>
+                <p class="meta">正在围观一条高浓度破防</p>
+              </div>
+            </div>
+
+            <article class="glass detail-post hot-red">
+              <div class="post-head">
+                <div>
+                  <p class="name">加班酸菜鱼</p>
+                  <p class="meta">Lv10 · 阴阳大师 · 8分钟前</p>
+                </div>
+                <span class="pill">128 赞</span>
+              </div>
+              <p class="content">老板说“这个需求很简单”的时候，我就知道今晚的月亮要陪我一起上线。</p>
+              <div class="reaction-summary">
+                <span>😂 51</span>
+                <span>😭 38</span>
+                <span>💀 24</span>
+                <span>🔥 15</span>
+              </div>
+            </article>
+
+            <section class="glass comment-composer">
+              <textarea maxlength="80" placeholder="80 字以内，5 字以上才有 +1 EXP。">这句话建议直接做成工位警示牌。</textarea>
+              <div class="sticker-tray" data-sticker-tray data-target=".comment-composer textarea"></div>
+              <div class="comment-tools">
+                <small>17 / 80 · 评论 +1 EXP</small>
+                <button class="comment-submit">评论</button>
+              </div>
+            </section>
+
+            <div class="comments-title">
+              <h2>评论区</h2>
+              <span>42 条共鸣</span>
+            </div>
+
+            <section class="comment-list">
+              <article class="glass comment-card daily-god-reply">
+                <div class="comment-head">
+                  <b>需求变更受害者</b>
+                  <small>刚刚</small>
+                </div>
+                <p><span class="featured-tag gold">🌟 今日神回复</span>“很简单”这三个字，通常是项目复杂度的起跑枪。</p>
+                <div class="comment-foot">
+                  <button class="comment-like liked" data-comment-like data-count="101">💚 101</button>
+                  <button class="comment-like" data-reply-toggle>回复</button>
+                </div>
+                <div class="reply-list">
+                  <div class="reply-card">
+                    <div class="comment-head"><b>加班酸菜鱼</b><small>刚刚</small></div>
+                    <p>这个比喻建议写进需求评审开场白。</p>
+                    <button class="comment-like" data-reply-toggle data-reply-name="加班酸菜鱼" style="margin-top: 8px">回复</button>
+                  </div>
+                </div>
+              </article>
+
+              <article class="glass comment-card god-reply">
+                <div class="comment-head">
+                  <b>上线前夜不眠人</b>
+                  <small>3分钟前</small>
+                </div>
+                <p><span class="featured-tag">✨ 神回复</span>月亮：我只是路过，不想参与你们的迭代。</p>
+                <div class="comment-foot">
+                  <button class="comment-like" data-comment-like data-count="50">💚 50</button>
+                  <button class="comment-like" data-reply-toggle>回复</button>
+                </div>
+              </article>
+
+              <article class="glass comment-card">
+                <div class="comment-head">
+                  <b>工位旁观者</b>
+                  <small>6分钟前</small>
+                </div>
+                <p>建议加一个状态：需求很简单，但人生很复杂。</p>
+                <div class="comment-foot">
+                  <button class="comment-like" data-comment-like data-count="7">💚 7</button>
+                  <button class="comment-like" data-reply-toggle>回复</button>
+                </div>
+              </article>
+            </section>
+          </section>
+        </main>
+
+        <footer class="bottom-nav">
+          <a class="active" href="#feed" data-screen="feed-screen">广场</a>
+          <a href="#leaderboard" data-screen="leaderboard-screen">榜单</a>
+          <a href="#create" data-screen="create-screen">发布</a>
+          <a href="#profile" data-screen="profile-screen">我的</a>
+        </footer>
+      </div>
+    </div>
+    <div class="level-modal" id="level-modal">
+      <div class="level-card-modal">
+        <span class="confetti" style="left: 20px; top: 24px">🎉</span>
+        <span class="confetti" style="right: 28px; top: 42px">✦</span>
+        <span class="confetti" style="left: 48px; bottom: 38px">✦</span>
+        <span class="confetti" style="right: 42px; bottom: 26px">🎉</span>
+        <div style="font-size: 38px">🎉</div>
+        <h2>升级成功</h2>
+        <div class="level-number">Lv8</div>
+        <b style="font-size: 22px">怨气工程师</b>
+        <p class="meta" style="margin-top: 12px">获得新的身份！点击关闭。</p>
+      </div>
+    </div>
+    <div class="popo-bubble" id="popo-bubble">今天还好吗？先吐槽一下吧。</div>
+    <button class="popo" id="popo" type="button" aria-label="PoPo 悬浮助手">PoPo</button>
+    <script>
+      const links = document.querySelectorAll("[data-screen]");
+      const screens = document.querySelectorAll(".screen");
+
+      function showScreen(id) {
+        screens.forEach((screen) => screen.classList.toggle("active", screen.id === id));
+        links.forEach((link) => link.classList.toggle("active", link.dataset.screen === id));
+        document.querySelector(".phone").scrollTo?.(0, 0);
+        window.scrollTo(0, 0);
+      }
+
+      links.forEach((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          history.replaceState(null, "", link.getAttribute("href"));
+          showScreen(link.dataset.screen);
+        });
+      });
+
+      document.querySelector(".back-chip")?.addEventListener("click", () => {
+        history.replaceState(null, "", "#feed");
+        showScreen("feed-screen");
+      });
+
+      document.querySelectorAll(".js-open-detail").forEach((card) => {
+        card.addEventListener("dblclick", () => {
+          history.replaceState(null, "", "#detail");
+          showScreen("detail-screen");
+        });
+      });
+
+      const headlinePool = [
+        "今天谁又绷不住了？",
+        "今天谁偷偷破防了？",
+        "今天谁想直接躺平？",
+        "今天谁被现实暴击了？",
+        "今天谁在地铁上发呆？",
+        "今天谁的怨气值爆表了？",
+        "今天谁又熬夜了？",
+        "今天谁强颜欢笑了一天？"
+      ];
+      const popoStickers = [
+        { id: "p1", src: "../public/stickers/12.png" },
+        { id: "p2", src: "../public/stickers/2.png" },
+        { id: "p3", src: "../public/stickers/233.png" },
+        { id: "p4", src: "../public/stickers/3.png" },
+        { id: "p5", src: "../public/stickers/4.png" },
+        { id: "p6", src: "../public/stickers/6.png" },
+        { id: "p7", src: "../public/stickers/8.png" },
+        { id: "p8", src: "../public/stickers/9.png" },
+        { id: "p9", src: "../public/stickers/ChatGPT%20Image%202026%E5%B9%B46%E6%9C%881%E6%97%A5%2007_56_31.png" }
+      ];
+      const headline = document.querySelector("#dynamic-headline");
+      let headlineIndex = 0;
+      let headlineText = headlinePool[0];
+      let headlineDeleting = false;
+
+      function tickHeadline() {
+        const current = headlinePool[headlineIndex];
+        const next = headlinePool[(headlineIndex + 1) % headlinePool.length];
+
+        if (!headlineDeleting && headlineText === current) {
+          setTimeout(() => {
+            headlineDeleting = true;
+            tickHeadline();
+          }, 3800);
+          return;
+        }
+
+        if (headlineDeleting && headlineText.length > 0) {
+          headlineText = headlineText.slice(0, -1);
+        } else if (headlineDeleting) {
+          headlineDeleting = false;
+          headlineIndex = (headlineIndex + 1) % headlinePool.length;
+        } else {
+          headlineText = next.slice(0, headlineText.length + 1);
+        }
+
+        if (headline) headline.textContent = headlineText;
+        setTimeout(tickHeadline, headlineDeleting ? 28 : 52);
+      }
+      setTimeout(tickHeadline, 5000);
+
+      const composeTextarea = document.querySelector("#compose-textarea");
+      const composeCount = document.querySelector("#compose-count");
+      const breakScore = document.querySelector("#break-score");
+      const breakBar = document.querySelector("#break-bar");
+      const breakRank = document.querySelector("#break-rank");
+      const launchPost = document.querySelector("#launch-post");
+      const feedList = document.querySelector("#feed-list");
+      const commentList = document.querySelector(".comment-list");
+      const commentComposer = document.querySelector(".comment-composer");
+      const commentTextarea = commentComposer?.querySelector("textarea");
+      const commentSubmit = commentComposer?.querySelector(".comment-submit");
+
+      const adPatterns = [
+        /刷单|兼职日结|代刷|接单群|返佣|推广合作/i,
+        /博彩|赌博|网赌|棋牌|彩票|真人荷官|体育投注/i,
+        /色情|裸聊|约炮|成人视频|看片|外围|上门服务/i,
+        /加微信|加vx|加v信|加v|加qq|加tg|加telegram|私聊带你|带你赚钱/i
+      ];
+      const contactPatterns = [
+        /(?:\+?86[-\s]?)?1[3-9]\d[-\s]?\d{4}[-\s]?\d{4}/,
+        /(?:微信|vx|v信|wechat|weixin)[：:\s号]*(?:[a-z][-_a-z0-9]{5,19})/i,
+        /(?:qq|企鹅)[：:\s号]*(?:[1-9]\d{4,11})/i,
+        /(?:tg|telegram|电报)[：:\s@号]*(?:[a-z][a-z0-9_]{4,31})/i,
+        /t\.me\/[a-z0-9_]{4,31}/i
+      ];
+
+      function canPublish(content) {
+        return !contactPatterns.some((pattern) => pattern.test(content)) && !adPatterns.some((pattern) => pattern.test(content));
+      }
+
+      function flashButton(button, text, restoreText) {
+        if (!button) return;
+        button.textContent = text;
+        setTimeout(() => (button.textContent = restoreText), 900);
+      }
+
+      function stickerById(id) {
+        return popoStickers.find((sticker) => sticker.id === id);
+      }
+
+      function renderStickerContent(element, content) {
+        if (!element) return;
+        element.textContent = "";
+        const pattern = /\[popo:([a-z0-9-]+)\]/gi;
+        let lastIndex = 0;
+        for (const match of content.matchAll(pattern)) {
+          if (match.index > lastIndex) {
+            element.append(document.createTextNode(content.slice(lastIndex, match.index)));
+          }
+          const sticker = stickerById(match[1]);
+          if (sticker) {
+            const image = document.createElement("img");
+            image.className = "inline-sticker";
+            image.alt = "PoPo";
+            image.src = sticker.src;
+            element.append(image);
+          } else {
+            element.append(document.createTextNode(match[0]));
+          }
+          lastIndex = match.index + match[0].length;
+        }
+        if (lastIndex < content.length) {
+          element.append(document.createTextNode(content.slice(lastIndex)));
+        }
+      }
+
+      function insertSticker(targetSelector, token) {
+        const textarea = document.querySelector(targetSelector);
+        if (!textarea) return;
+        const start = textarea.selectionStart ?? textarea.value.length;
+        const end = textarea.selectionEnd ?? textarea.value.length;
+        const nextValue = `${textarea.value.slice(0, start)}${token}${textarea.value.slice(end)}`;
+        if (textarea.maxLength > 0 && nextValue.length > textarea.maxLength) return;
+        textarea.value = nextValue;
+        textarea.focus();
+        textarea.setSelectionRange(start + token.length, start + token.length);
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+
+      function mountStickerTray(tray) {
+        const target = tray.dataset.target;
+        popoStickers.forEach((sticker) => {
+          const button = document.createElement("button");
+          button.className = "sticker-button";
+          button.type = "button";
+          button.innerHTML = `<img src="${sticker.src}" alt="PoPo" />`;
+          button.addEventListener("click", () => insertSticker(target, `[popo:${sticker.id}]`));
+          tray.appendChild(button);
+        });
+      }
+
+      document.querySelectorAll("[data-sticker-tray]").forEach(mountStickerTray);
+
+      function refreshComposeCount() {
+        if (!composeTextarea || !composeCount) return;
+        composeCount.textContent = `${composeTextarea.value.length} / 100`;
+        updateBreakIndex();
+      }
+
+      function updateBreakIndex() {
+        if (!composeTextarea || !breakScore || !breakBar || !breakRank) return;
+        const text = composeTextarea.value.trim();
+        const seed = Array.from(text).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+        const score = text ? Math.min(100, Math.max(18, (seed % 58) + Math.min(text.length * 2, 42))) : 0;
+        const rank = score >= 92 ? "SS级" : score >= 78 ? "S级" : score >= 58 ? "A级" : score >= 32 ? "B级" : "C级";
+        breakScore.textContent = `${score}%`;
+        breakBar.style.width = `${score}%`;
+        breakRank.textContent = rank;
+      }
+
+      function makePostCard(content) {
+        const article = document.createElement("article");
+        article.className = "glass post js-open-detail";
+        article.innerHTML = `
+          <div class="post-head">
+            <div>
+              <p class="name">今天也很稳定地破防</p>
+              <p class="meta">Lv7 · 吐槽专员 · 刚刚</p>
+            </div>
+            <span class="pill">0 赞</span>
+          </div>
+          <p class="content"></p>
+          <div class="actions">
+            <button>😂 笑死</button>
+            <button>😭 共鸣</button>
+            <button>💀 破防</button>
+            <button>🔥 神吐槽</button>
+          </div>
+          <div class="comment-row">
+            <span>新鲜出炉，热气还在</span>
+            <b>💬 0</b>
+          </div>
+        `;
+        renderStickerContent(article.querySelector(".content"), content);
+        bindBadgeLike(article.querySelector(".pill"));
+        article.addEventListener("dblclick", () => {
+          history.replaceState(null, "", "#detail");
+          showScreen("detail-screen");
+        });
+        article.querySelectorAll("button").forEach((button) => {
+          button.addEventListener("click", () => {
+            button.animate(
+              [
+                { transform: "scale(1)" },
+                { transform: "scale(0.92)" },
+                { transform: "scale(1.03)" },
+                { transform: "scale(1)" }
+              ],
+              { duration: 220, easing: "ease-out" }
+            );
+          });
+        });
+        return article;
+      }
+
+      composeTextarea?.addEventListener("input", refreshComposeCount);
+      refreshComposeCount();
+
+      launchPost?.addEventListener("click", () => {
+        const content = composeTextarea?.value.trim();
+        if (!content) return;
+        if (!canPublish(content)) {
+          flashButton(launchPost, "不收广告", "发射");
+          return;
+        }
+
+        const rect = composeTextarea.getBoundingClientRect();
+        const paper = document.createElement("div");
+        paper.className = "paper-ball";
+        paper.textContent = "✦";
+        paper.style.left = `${rect.left + rect.width / 2}px`;
+        paper.style.top = `${rect.top + rect.height / 2}px`;
+        document.body.appendChild(paper);
+
+        launchPost.textContent = "发射中";
+        setTimeout(() => {
+          feedList?.prepend(makePostCard(content));
+          composeTextarea.value = "";
+          refreshComposeCount();
+          launchPost.textContent = "发射";
+          history.replaceState(null, "", "#feed");
+          showScreen("feed-screen");
+        }, 620);
+
+        setTimeout(() => paper.remove(), 820);
+      });
+
+      function makeCommentCard(content) {
+        const article = document.createElement("article");
+        article.className = "glass comment-card";
+        article.innerHTML = `
+          <div class="comment-head">
+            <b>今天也很稳定地破防</b>
+            <small>刚刚</small>
+          </div>
+          <p></p>
+          <div class="comment-foot">
+            <button class="comment-like" data-comment-like data-count="0">💚 0</button>
+            <button class="comment-like" data-reply-toggle>回复</button>
+          </div>
+        `;
+        renderStickerContent(article.querySelector("p"), content);
+        bindCommentLike(article.querySelector("[data-comment-like]"));
+        bindReplyToggle(article.querySelector("[data-reply-toggle]"));
+        return article;
+      }
+
+      function makeReplyCard(content) {
+        const reply = document.createElement("div");
+        reply.className = "reply-card";
+        reply.innerHTML = `
+          <div class="comment-head"><b>今天也很稳定地破防</b><small>刚刚</small></div>
+          <p></p>
+          <button class="comment-like" data-reply-toggle data-reply-name="今天也很稳定地破防" style="margin-top: 8px">回复</button>
+        `;
+        renderStickerContent(reply.querySelector("p"), content);
+        bindReplyToggle(reply.querySelector("[data-reply-toggle]"));
+        return reply;
+      }
+
+      commentSubmit?.addEventListener("click", () => {
+        const content = commentTextarea?.value.trim();
+        if (!content) return;
+        if (!canPublish(content)) {
+          flashButton(commentSubmit, "不收广告", "评论");
+          return;
+        }
+        commentList?.prepend(makeCommentCard(content));
+        commentTextarea.value = "";
+        commentSubmit.textContent = "已发送";
+        setTimeout(() => (commentSubmit.textContent = "评论"), 700);
+      });
+
+      function bindBadgeLike(badge) {
+        if (!badge || badge.dataset.bound === "true" || !badge.textContent?.includes("赞")) return;
+        badge.dataset.bound = "true";
+        badge.dataset.liked = badge.dataset.liked || "false";
+        badge.dataset.count = badge.dataset.count || String(parseInt(badge.textContent, 10) || 0);
+
+        badge.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const wasLiked = badge.dataset.liked === "true";
+          const nextLiked = !wasLiked;
+          const nextCount = Math.max(0, Number(badge.dataset.count || 0) + (nextLiked ? 1 : -1));
+          badge.dataset.liked = String(nextLiked);
+          badge.dataset.count = String(nextCount);
+          badge.textContent = `${nextCount} 赞`;
+          badge.classList.toggle("liked", nextLiked);
+          badge.classList.remove("pop", "unpop");
+          void badge.offsetWidth;
+          badge.classList.add(nextLiked ? "pop" : "unpop");
+
+          if (nextLiked) {
+            const plus = document.createElement("span");
+            plus.className = "badge-plus";
+            plus.textContent = "+1";
+            badge.appendChild(plus);
+            setTimeout(() => plus.remove(), 540);
+
+            const rect = badge.getBoundingClientRect();
+            ["💚", "✨", "+1", "怨", "✨"].forEach((particleText, index) => {
+              const particle = document.createElement("span");
+              particle.className = "badge-particle";
+              particle.textContent = particleText;
+              particle.style.left = `${rect.left + rect.width / 2}px`;
+              particle.style.top = `${rect.top + rect.height / 2}px`;
+              particle.style.setProperty("--x", `${(index - 2) * 16}px`);
+              particle.style.setProperty("--y", `${-24 - (index % 2) * 14}px`);
+              document.body.appendChild(particle);
+              setTimeout(() => particle.remove(), 560);
+            });
+          }
+        });
+      }
+
+      document.querySelectorAll(".pill").forEach(bindBadgeLike);
+
+      document.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          button.animate(
+            [
+              { transform: "scale(1)" },
+              { transform: "scale(0.92)" },
+              { transform: "scale(1.03)" },
+              { transform: "scale(1)" }
+            ],
+            { duration: 220, easing: "ease-out" }
+          );
+
+          const text = button.textContent || "";
+          const emoji = text.trim().slice(0, 2).trim();
+          if (["😂", "😭", "💀", "🔥"].includes(emoji)) {
+            const rect = button.getBoundingClientRect();
+            for (let index = 0; index < 8; index += 1) {
+              const particle = document.createElement("span");
+              particle.className = "emoji-particle";
+              particle.textContent = emoji;
+              particle.style.left = `${rect.left + rect.width / 2}px`;
+              particle.style.top = `${rect.top + rect.height / 2}px`;
+              particle.style.setProperty("--x", `${(index - 3.5) * 14}px`);
+              particle.style.setProperty("--y", `${-46 - (index % 3) * 18}px`);
+              document.body.appendChild(particle);
+              setTimeout(() => particle.remove(), 650);
+            }
+          }
+
+          if (text.includes("神吐槽")) {
+            document.querySelector("#level-modal")?.classList.add("active");
+          }
+        });
+      });
+
+      document.querySelector("#level-modal")?.addEventListener("click", () => {
+        document.querySelector("#level-modal")?.classList.remove("active");
+      });
+
+      const popoLines = [
+        "今天还好吗？",
+        "先吐槽一下吧。",
+        "你的怨气快满了。",
+        "今天又稳定破防了吗？",
+        "别憋着，吐出来。"
+      ];
+      const popo = document.querySelector("#popo");
+      const popoBubble = document.querySelector("#popo-bubble");
+      popo?.addEventListener("click", () => {
+        if (!popoBubble) return;
+        popoBubble.textContent = popoLines[Math.floor(Math.random() * popoLines.length)];
+        popoBubble.classList.add("active");
+        window.clearTimeout(popoBubble.hideTimer);
+        popoBubble.hideTimer = window.setTimeout(() => popoBubble.classList.remove("active"), 2600);
+      });
+
+      function bindCommentLike(button) {
+        if (!button || button.dataset.bound === "true") return;
+        button.dataset.bound = "true";
+        button.addEventListener("click", () => {
+          const liked = button.classList.toggle("liked");
+          const nextCount = Math.max(0, Number(button.dataset.count || 0) + (liked ? 1 : -1));
+          button.dataset.count = String(nextCount);
+          button.textContent = `💚 ${nextCount}`;
+          button.animate(
+            [
+              { transform: "scale(1)" },
+              { transform: "scale(0.94)" },
+              { transform: "scale(1.04)" },
+              { transform: "scale(1)" }
+            ],
+            { duration: 240, easing: "ease-out" }
+          );
+        });
+      }
+
+      function bindReplyToggle(button) {
+        if (!button || button.dataset.bound === "true") return;
+        button.dataset.bound = "true";
+        button.addEventListener("click", () => {
+          const card = button.closest(".comment-card");
+          if (!card) return;
+          const existing = card.querySelector(".reply-box");
+          if (existing) {
+            existing.querySelector("textarea")?.focus();
+            return;
+          }
+          const box = document.createElement("div");
+          box.className = "reply-box";
+          const replyName = button.dataset.replyName;
+          box.innerHTML = `
+            <textarea maxlength="80" placeholder="${replyName ? `回复 ${replyName}，仍会显示在本条评论下。` : "回复一下，回复不加经验，主打真诚。"}"></textarea>
+            <div class="sticker-tray" data-inline-sticker-tray></div>
+            <button class="comment-like" data-send-reply style="margin-top: 8px">发送回复</button>
+          `;
+          card.appendChild(box);
+          const textarea = box.querySelector("textarea");
+          const send = box.querySelector("[data-send-reply]");
+          const inlineTray = box.querySelector("[data-inline-sticker-tray]");
+          inlineTray.dataset.target = ".reply-box textarea";
+          mountStickerTray(inlineTray);
+          textarea?.focus();
+          send?.addEventListener("click", () => {
+            const content = textarea?.value.trim();
+            if (!content) return;
+            if (!canPublish(content)) {
+              flashButton(send, "不收广告", "发送回复");
+              return;
+            }
+            let replyList = card.querySelector(".reply-list");
+            if (!replyList) {
+              replyList = document.createElement("div");
+              replyList.className = "reply-list";
+              card.appendChild(replyList);
+            }
+            replyList.appendChild(makeReplyCard(content));
+            box.remove();
+          });
+        });
+      }
+
+      document.querySelectorAll("[data-comment-like]").forEach(bindCommentLike);
+      document.querySelectorAll("[data-reply-toggle]").forEach(bindReplyToggle);
+
+      const routeMap = {
+        "#feed": "feed-screen",
+        "#leaderboard": "leaderboard-screen",
+        "#create": "create-screen",
+        "#profile": "profile-screen",
+        "#detail": "detail-screen"
+      };
+      showScreen(routeMap[location.hash] || "feed-screen");
+    </script>
+  </body>
+</html>
