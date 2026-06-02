@@ -96,10 +96,17 @@ export async function createComment(formData: FormData) {
   if (!safety.ok) redirect(`/post/${postId}?error=${encodeURIComponent(safety.message ?? "这条暂时不能发布。")}`);
 
   const supabase = createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?message=${encodeURIComponent("登录后才能积累怨气值和经验")}`);
+
   const { error } = await supabase.rpc("create_comment", {
+    profile_uuid: user.id,
     post_uuid: postId,
     comment_content: content,
-    parent_uuid: parentCommentId
+    comment_sticker_id: null,
+    parent_comment_uuid: parentCommentId
   });
 
   if (error) redirect(`/post/${postId}?error=${encodeURIComponent(error.message)}`);

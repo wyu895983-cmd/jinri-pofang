@@ -672,7 +672,8 @@ export async function createComment(postId: string, content: string, parentComme
         profile_uuid: user.guest_user_id,
         post_uuid: postId,
         comment_content: content,
-        comment_sticker_id: null
+        comment_sticker_id: null,
+        parent_comment_uuid: null
       });
       if (legacyError) throw new Error(`评论发送失败：${getErrorMessage(legacyError)}`);
       await refreshCurrentUser();
