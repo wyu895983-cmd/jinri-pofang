@@ -31,6 +31,7 @@ create table if not exists public.posts (
 create table if not exists public.comments (
   id uuid primary key default gen_random_uuid(),
   post_id uuid not null references public.posts(id) on delete cascade,
+  parent_comment_id uuid references public.comments(id) on delete cascade,
   user_id uuid not null references public.profiles(id) on delete cascade,
   content text not null check (char_length(trim(content)) between 1 and 80),
   sticker_id text,
@@ -92,9 +93,13 @@ create table if not exists public.notifications (
 alter table public.notifications
   add column if not exists "commentId" uuid references public.comments(id) on delete cascade;
 
+alter table public.comments
+  add column if not exists parent_comment_id uuid references public.comments(id) on delete cascade;
+
 create index if not exists posts_created_at_idx on public.posts(created_at desc);
 create index if not exists posts_user_id_idx on public.posts(user_id);
 create index if not exists comments_post_id_created_at_idx on public.comments(post_id, created_at asc);
+create index if not exists comments_parent_comment_id_created_at_idx on public.comments(parent_comment_id, created_at asc);
 create index if not exists profiles_exp_idx on public.profiles(exp desc);
 create index if not exists notifications_to_user_read_created_idx on public.notifications("toUserId", read, "createdAt" desc);
 
@@ -319,7 +324,15 @@ begin
 end;
 $$;
 
-create or replace function public.create_comment(profile_uuid uuid, post_uuid uuid, comment_content text, comment_sticker_id text default null)
+drop function if exists public.create_comment(uuid, uuid, text, text);
+
+create or replace function public.create_comment(
+  profile_uuid uuid,
+  post_uuid uuid,
+  comment_content text,
+  comment_sticker_id text default null,
+  parent_comment_uuid uuid default null
+)
 returns public.comments
 language plpgsql
 security definer
@@ -328,6 +341,8 @@ as $$
 declare
   row_comment public.comments;
   post_owner uuid;
+  parent_owner uuid;
+  notify_owner uuid;
 begin
   perform public.ensure_daily_profile(profile_uuid);
 
@@ -340,18 +355,30 @@ begin
     raise exception '评论必须是 1-80 字';
   end if;
 
-  insert into public.comments(post_id, user_id, content, sticker_id)
-  values (post_uuid, profile_uuid, trim(comment_content), nullif(trim(coalesce(comment_sticker_id, '')), ''))
+  if parent_comment_uuid is not null then
+    select user_id into parent_owner
+    from public.comments
+    where id = parent_comment_uuid and post_id = post_uuid;
+
+    if parent_owner is null then
+      raise exception '父评论不存在';
+    end if;
+  end if;
+
+  notify_owner := coalesce(parent_owner, post_owner);
+
+  insert into public.comments(post_id, parent_comment_id, user_id, content, sticker_id)
+  values (post_uuid, parent_comment_uuid, profile_uuid, trim(comment_content), nullif(trim(coalesce(comment_sticker_id, '')), ''))
   returning * into row_comment;
 
   update public.posts set comment_count = comment_count + 1, updated_at = now() where id = post_uuid;
 
   perform public.add_exp(profile_uuid, 'comment_create', 1, 10, row_comment.id, null);
-  if post_owner <> profile_uuid then
-    perform public.add_exp(post_owner, 'received_comment', 1, 20, row_comment.id, null);
+  if notify_owner <> profile_uuid then
+    perform public.add_exp(notify_owner, 'received_comment', 1, 20, row_comment.id, null);
 
     insert into public.notifications(type, "fromUserId", "fromUserName", "toUserId", "postId", "commentId", "postText", "commentText")
-    select 'comment', profile_uuid, from_profile.nickname, post_owner, post_uuid, row_comment.id, p.content, row_comment.content
+    select 'comment', profile_uuid, from_profile.nickname, notify_owner, post_uuid, row_comment.id, p.content, row_comment.content
     from public.posts p
     join public.profiles from_profile on from_profile.id = profile_uuid
     where p.id = post_uuid;
@@ -493,6 +520,8 @@ create or replace view public.comment_feed as
 select
   c.id,
   c.post_id,
+  c.parent_comment_id,
+  parent_profile.nickname as parent_nickname,
   c.user_id,
   pr.nickname,
   pr.avatar_url,
@@ -502,7 +531,9 @@ select
   c.created_at,
   c.updated_at
 from public.comments c
-join public.profiles pr on pr.id = c.user_id;
+join public.profiles pr on pr.id = c.user_id
+left join public.comments parent_comment on parent_comment.id = c.parent_comment_id
+left join public.profiles parent_profile on parent_profile.id = parent_comment.user_id;
 
 grant select on public.profiles, public.posts, public.comments, public.reactions, public.post_feed, public.comment_feed, public.notifications to anon, authenticated;
 grant insert on public.feedbacks to anon, authenticated;
@@ -511,7 +542,7 @@ grant execute on function public.login_or_create_profile(text, text) to anon, au
 grant execute on function public.update_profile(uuid, text, text) to anon, authenticated;
 grant execute on function public.ensure_daily_profile(uuid) to anon, authenticated;
 grant execute on function public.create_post(uuid, text, text) to anon, authenticated;
-grant execute on function public.create_comment(uuid, uuid, text, text) to anon, authenticated;
+grant execute on function public.create_comment(uuid, uuid, text, text, uuid) to anon, authenticated;
 grant execute on function public.react_to_post(uuid, uuid, text) to anon, authenticated;
 grant execute on function public.react_to_comment(uuid, uuid) to anon, authenticated;
 

@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { LocalPostCard } from "@/components/local-post-card";
 import { RichContent } from "@/components/rich-content";
 import { StickerPicker } from "@/components/sticker-picker";
@@ -24,8 +24,20 @@ export default function PostDetailPage() {
   const [toast, setToast] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(true);
+  const [replyTarget, setReplyTarget] = useState<LocalComment | null>(null);
   const [pendingPostIds, setPendingPostIds] = useState<Set<string>>(new Set());
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(new Set());
+  const topComments = useMemo(() => comments.filter((comment) => !comment.parent_comment_id), [comments]);
+  const repliesByParent = useMemo(() => {
+    const byId = new Map(comments.map((comment) => [comment.id, comment]));
+    return comments.reduce<Record<string, LocalComment[]>>((acc, comment) => {
+      if (!comment.parent_comment_id) return acc;
+      const parent = byId.get(comment.parent_comment_id);
+      const parentId = parent?.parent_comment_id ?? comment.parent_comment_id;
+      acc[parentId] = [...(acc[parentId] ?? []), comment].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+      return acc;
+    }, {});
+  }, [comments]);
 
   async function refresh() {
     const current = getCurrentUser();
@@ -80,8 +92,9 @@ export default function PostDetailPage() {
     if (!requireName()) return;
 
     try {
-      await createComment(params.id, String(new FormData(event.currentTarget).get("content") ?? ""));
+      await createComment(params.id, String(new FormData(event.currentTarget).get("content") ?? ""), replyTarget?.id ?? null);
       event.currentTarget.reset();
+      setReplyTarget(null);
       setError("");
       await refresh();
     } catch (err) {
@@ -167,11 +180,19 @@ export default function PostDetailPage() {
         <h2 className="text-h2 text-white">评论区</h2>
         <form className="mt-4" onSubmit={submitComment}>
           {error ? <p className="mb-3 text-meta text-acid">{error}</p> : null}
+          {replyTarget ? (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-card border border-acid/30 bg-acid/10 px-3 py-2 text-meta text-acid">
+              <span className="truncate">回复 @{replyTarget.nickname}</span>
+              <button className="shrink-0 text-muted transition hover:text-white" onClick={() => setReplyTarget(null)} type="button">
+                取消
+              </button>
+            </div>
+          ) : null}
           <textarea
             className="w-full resize-none rounded-card border border-line bg-ink/70 p-4 text-body text-white outline-none ring-acid/20 placeholder:text-zinc-600 focus:border-acid focus:ring-4"
             maxLength={80}
             name="content"
-            placeholder="80 字以内，接住这份破防。"
+            placeholder={replyTarget ? `回复 @${replyTarget.nickname}` : "80 字以内，接住这份破防。"}
             rows={3}
           />
           <StickerPicker />
@@ -181,8 +202,8 @@ export default function PostDetailPage() {
         <div className="mt-6 space-y-3">
           {commentsLoading && !comments.length ? (
             <CommentSkeleton />
-          ) : comments.length ? (
-            comments.map((comment, index) => (
+          ) : topComments.length ? (
+            topComments.map((comment, index) => (
               <motion.article
                 className="rounded-card border border-line bg-white/[0.035] p-4"
                 id={`comment-${comment.id}`}
@@ -214,6 +235,44 @@ export default function PostDetailPage() {
                   </motion.button>
                 </div>
                 <RichContent className="text-body text-zinc-200" content={comment.content} />
+                <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setReplyTarget(comment)} type="button">
+                  回复
+                </button>
+                {repliesByParent[comment.id]?.length ? (
+                  <div className="mt-4 space-y-3 border-l border-acid/20 pl-4">
+                    {repliesByParent[comment.id].map((reply) => (
+                      <article className="rounded-card border border-line bg-ink/35 p-3" id={`comment-${reply.id}`} key={reply.id}>
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <img alt="" className="h-7 w-7 rounded-xl border border-acid/20 bg-acid/10 object-contain p-1" src={reply.avatar_url} />
+                            <div className="min-w-0">
+                              <p className="truncate text-[14px] font-semibold leading-5 text-white">{reply.nickname}</p>
+                              <p className="mt-0.5 text-meta text-muted">{formatCommentTime(reply.created_at)}</p>
+                            </div>
+                          </div>
+                          <motion.button
+                            className={`rounded-[12px] border px-2 py-1 text-label ${
+                              userId && reply.liked_by.includes(userId) ? "border-acid/70 bg-acid/20 text-acid" : "border-line text-muted"
+                            }`}
+                            disabled={pendingCommentIds.has(reply.id)}
+                            onClick={() => handleCommentLike(reply.id)}
+                            type="button"
+                            whileTap={{ scale: 0.92 }}
+                          >
+                            <motion.span key={reply.like_count} initial={{ scale: 1.22 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
+                              {reply.like_count}赞
+                            </motion.span>
+                          </motion.button>
+                        </div>
+                        <p className="mb-1 text-label text-acid">回复 @{reply.parent_nickname || comment.nickname}</p>
+                        <RichContent className="text-body text-zinc-200" content={reply.content} />
+                        <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setReplyTarget(reply)} type="button">
+                          回复
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
               </motion.article>
             ))
           ) : (

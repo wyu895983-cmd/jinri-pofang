@@ -39,6 +39,8 @@ export type LocalPost = {
 export type LocalComment = {
   id: string;
   post_id: string;
+  parent_comment_id?: string | null;
+  parent_nickname?: string | null;
   user_id: string;
   nickname: string;
   avatar_url: string;
@@ -69,7 +71,8 @@ const USER_AVATAR_KEY = "userAvatar";
 export const DEFAULT_AVATARS = ["/avatars/avatar1.webp", "/avatars/avatar2.webp", "/avatars/avatar3.webp", "/avatars/avatar4.webp"];
 const RANDOM_NICKNAMES = ["今日路过", "普通破防人", "地铁发呆员", "还能再撑会儿", "怨气待机中", "先笑一下"];
 const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
-const COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
+const COMMENT_FEED_COLUMNS = "id,post_id,parent_comment_id,parent_nickname,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
+const LEGACY_COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
 const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date";
 const NOTIFICATION_COLUMNS = 'id,type,fromUserId,fromUserName,toUserId,postId,commentId,postText,commentText,createdAt,read';
 let cachedUser: LocalUser | null | undefined;
@@ -177,6 +180,8 @@ function toComment(row: any, likedBy: string[] = []): LocalComment {
   return {
     id: row.id,
     post_id: row.post_id,
+    parent_comment_id: row.parent_comment_id ?? null,
+    parent_nickname: row.parent_nickname ?? null,
     user_id: row.user_id,
     nickname,
     avatar_url: avatar,
@@ -534,25 +539,54 @@ export async function getComments(postId: string) {
         .eq("post_id", postId)
         .order("like_count", { ascending: false })
         .order("created_at", { ascending: false });
-      if (error) throw error;
-      const commentIds = (rows ?? []).map((row: any) => row.id);
+      let nextRows: any[] | null = rows;
+      if (error) {
+        const { data: legacyRows, error: legacyError } = await supabase
+          .from("comment_feed")
+          .select(LEGACY_COMMENT_FEED_COLUMNS)
+          .eq("post_id", postId)
+          .order("like_count", { ascending: false })
+          .order("created_at", { ascending: false });
+        if (legacyError) throw legacyError;
+        nextRows = legacyRows;
+      }
+      const commentIds = (nextRows ?? []).map((row: any) => row.id);
       const { data: reactions } =
         user && commentIds.length
           ? await supabase.from("reactions").select("comment_id").eq("user_id", user.guest_user_id).in("comment_id", commentIds)
           : { data: [] };
       const liked = new Set((reactions ?? []).map((reaction: any) => reaction.comment_id));
-      return (rows ?? []).map((row: any) => toComment(row, liked.has(row.id) && user ? [user.guest_user_id] : []));
+      return (nextRows ?? []).map((row: any) => toComment(row, liked.has(row.id) && user ? [user.guest_user_id] : []));
     } catch {
       return [];
     }
   }
 
-  return readJson<LocalComment[]>(COMMENTS_KEY, [])
-    .filter((comment) => comment.post_id === postId)
-    .sort((a, b) => b.like_count - a.like_count || Date.parse(b.created_at) - Date.parse(a.created_at));
+  return sortLocalComments(readJson<LocalComment[]>(COMMENTS_KEY, []).filter((comment) => comment.post_id === postId));
 }
 
-export async function createComment(postId: string, content: string) {
+function sortLocalComments(comments: LocalComment[]) {
+  const repliesByParent = new Map<string, LocalComment[]>();
+  const topComments: LocalComment[] = [];
+  const byId = new Map(comments.map((comment) => [comment.id, comment]));
+
+  comments.forEach((comment) => {
+    if (comment.parent_comment_id) {
+      const parent = byId.get(comment.parent_comment_id);
+      const parentId = parent?.parent_comment_id ?? comment.parent_comment_id;
+      repliesByParent.set(parentId, [...(repliesByParent.get(parentId) ?? []), comment]);
+      return;
+    }
+
+    topComments.push(comment);
+  });
+
+  topComments.sort((a, b) => b.like_count - a.like_count || Date.parse(b.created_at) - Date.parse(a.created_at));
+  repliesByParent.forEach((replies) => replies.sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at)));
+  return topComments.flatMap((comment) => [comment, ...(repliesByParent.get(comment.id) ?? [])]);
+}
+
+export async function createComment(postId: string, content: string, parentCommentId: string | null = null) {
   const user = getCurrentUser();
   if (!user) throw new Error("取个名字才能留下你的破防痕迹。");
   if (isSupabaseBrowserConfigured() && !postId.startsWith("mock-")) {
@@ -561,16 +595,32 @@ export async function createComment(postId: string, content: string) {
       profile_uuid: user.guest_user_id,
       post_uuid: postId,
       comment_content: content,
-      comment_sticker_id: null
+      comment_sticker_id: null,
+      parent_comment_uuid: parentCommentId
     });
-    if (error) throw error;
+    if (error) {
+      if (parentCommentId) throw error;
+      const { data: legacyData, error: legacyError } = await supabase.rpc("create_comment", {
+        profile_uuid: user.guest_user_id,
+        post_uuid: postId,
+        comment_content: content,
+        comment_sticker_id: null
+      });
+      if (legacyError) throw legacyError;
+      await refreshCurrentUser();
+      return toComment({ ...legacyData, nickname: user.nickname, avatar_url: user.avatar_url }, []);
+    }
     await refreshCurrentUser();
     return toComment({ ...data, nickname: user.nickname, avatar_url: user.avatar_url }, []);
   }
 
+  const comments = readJson<LocalComment[]>(COMMENTS_KEY, []);
+  const parentComment = parentCommentId ? comments.find((comment) => comment.id === parentCommentId) : null;
   const comment: LocalComment = {
     id: uuid(),
     post_id: postId,
+    parent_comment_id: parentComment?.id ?? null,
+    parent_nickname: parentComment?.nickname ?? null,
     user_id: user.guest_user_id,
     nickname: user.nickname,
     avatar_url: user.avatar_url,
@@ -579,7 +629,6 @@ export async function createComment(postId: string, content: string) {
     liked_by: [],
     created_at: nowIso()
   };
-  const comments = readJson<LocalComment[]>(COMMENTS_KEY, []);
   const posts = seedPosts().map((post) => (post.id === postId ? { ...post, comment_count: post.comment_count + 1 } : post));
   writeJson(COMMENTS_KEY, [...comments, comment]);
   writeJson(POSTS_KEY, posts);
