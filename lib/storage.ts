@@ -266,7 +266,13 @@ export async function updateCurrentUserProfile(input: { nickname?: string; avata
   if (isSupabaseBrowserConfigured()) {
     try {
       const supabase = createSupabaseBrowserClient();
-      await supabase.from("profiles").update({ nickname: next.nickname, avatar_url: next.avatar_url }).eq("id", next.guest_user_id);
+      const { data, error } = await supabase.rpc("update_profile", {
+        profile_uuid: next.guest_user_id,
+        raw_nickname: next.nickname,
+        raw_avatar_url: next.avatar_url
+      });
+      if (error) throw error;
+      if (data) return saveUser(toUser(data));
     } catch {
       // Local profile preferences still apply even if remote profile update is unavailable.
     }

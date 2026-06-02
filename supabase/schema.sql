@@ -246,6 +246,36 @@ begin
 end;
 $$;
 
+create or replace function public.update_profile(profile_uuid uuid, raw_nickname text default null, raw_avatar_url text default null)
+returns public.profiles
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  clean_nickname text := nullif(trim(coalesce(raw_nickname, '')), '');
+  clean_avatar text := nullif(trim(coalesce(raw_avatar_url, '')), '');
+  row_profile public.profiles;
+begin
+  if clean_nickname is not null and (char_length(clean_nickname) < 1 or char_length(clean_nickname) > 12) then
+    raise exception '昵称需要 1-12 个字';
+  end if;
+
+  update public.profiles
+  set nickname = coalesce(clean_nickname, nickname),
+      avatar_url = coalesce(clean_avatar, avatar_url),
+      updated_at = now()
+  where id = profile_uuid
+  returning * into row_profile;
+
+  if row_profile.id is null then
+    raise exception '用户不存在';
+  end if;
+
+  return row_profile;
+end;
+$$;
+
 create or replace function public.create_post(profile_uuid uuid, post_content text, post_sticker_id text default null)
 returns public.posts
 language plpgsql
@@ -474,6 +504,7 @@ grant select on public.profiles, public.posts, public.comments, public.reactions
 grant insert on public.feedbacks to anon, authenticated;
 grant update(read) on public.notifications to anon, authenticated;
 grant execute on function public.login_or_create_profile(text, text) to anon, authenticated;
+grant execute on function public.update_profile(uuid, text, text) to anon, authenticated;
 grant execute on function public.ensure_daily_profile(uuid) to anon, authenticated;
 grant execute on function public.create_post(uuid, text, text) to anon, authenticated;
 grant execute on function public.create_comment(uuid, uuid, text, text) to anon, authenticated;

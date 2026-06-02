@@ -157,7 +157,10 @@ export default function PostDetailPage() {
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <img alt="" className="h-9 w-9 rounded-2xl border border-acid/20 bg-acid/10 object-contain p-1" src={comment.avatar_url} />
-                    <p className="truncate text-[15px] font-semibold leading-5 text-white">{comment.nickname}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-semibold leading-5 text-white">{comment.nickname}</p>
+                      <p className="mt-1 text-meta text-muted">{formatCommentTime(comment.created_at)}</p>
+                    </div>
                   </div>
                   <motion.button
                     className={`rounded-[12px] border px-3 py-1 text-label ${
@@ -215,4 +218,23 @@ function showNetworkToast(setToast: (value: string) => void) {
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function formatCommentTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const now = new Date();
+  const diffMs = Math.max(0, now.getTime() - date.getTime());
+  const minutes = Math.floor(diffMs / 60000);
+  const sameDay = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+
+  if (minutes < 1) return "刚刚";
+  if (minutes < 60) return `${minutes}分钟前`;
+  if (sameDay) return `今天 ${padTime(date.getHours())}:${padTime(date.getMinutes())}`;
+  return `${padTime(date.getMonth() + 1)}-${padTime(date.getDate())} ${padTime(date.getHours())}:${padTime(date.getMinutes())}`;
+}
+
+function padTime(value: number) {
+  return String(value).padStart(2, "0");
 }
