@@ -667,14 +667,14 @@ export async function createComment(postId: string, content: string, parentComme
       parent_comment_uuid: parentCommentId
     });
     if (error) {
-      if (parentCommentId) throw error;
+      if (parentCommentId) throw new Error(`回复评论失败：${getErrorMessage(error)}`);
       const { data: legacyData, error: legacyError } = await supabase.rpc("create_comment", {
         profile_uuid: user.guest_user_id,
         post_uuid: postId,
         comment_content: content,
         comment_sticker_id: null
       });
-      if (legacyError) throw legacyError;
+      if (legacyError) throw new Error(`评论发送失败：${getErrorMessage(legacyError)}`);
       await refreshCurrentUser();
       return toComment({ ...legacyData, nickname: user.nickname, avatar_url: user.avatar_url }, []);
     }
@@ -702,6 +702,12 @@ export async function createComment(postId: string, content: string, parentComme
   writeJson(POSTS_KEY, posts);
   saveUser({ ...user, exp: user.exp + 1 });
   return comment;
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error && "message" in error) return String((error as { message?: unknown }).message);
+  return "请稍后再试";
 }
 
 export async function likeComment(commentId: string) {

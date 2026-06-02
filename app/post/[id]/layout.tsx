@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 
+const siteUrl = getSiteUrl();
 const shareImage = "/share-card.png";
 
 type PostLayoutProps = {
@@ -9,19 +10,20 @@ type PostLayoutProps = {
 };
 
 export async function generateMetadata({ params }: PostLayoutProps): Promise<Metadata> {
-  const summary = await getPostSummary(params.id);
-  const description = summary || "所有人的破防瞬间";
+  const postUrl = `/post/${params.id}`;
+  const description = (await getPostSummary(params.id)) || "所有人的破防瞬间";
 
   return {
-    title: "有人在今日破防了",
+    metadataBase: new URL(siteUrl),
+    title: "今日破防",
     description,
     alternates: {
-      canonical: `/post/${params.id}`
+      canonical: postUrl
     },
     openGraph: {
-      title: "有人在今日破防了",
+      title: "今日破防",
       description,
-      url: `/post/${params.id}`,
+      url: postUrl,
       siteName: "今日破防",
       images: [
         {
@@ -36,7 +38,7 @@ export async function generateMetadata({ params }: PostLayoutProps): Promise<Met
     },
     twitter: {
       card: "summary_large_image",
-      title: "有人在今日破防了",
+      title: "今日破防",
       description,
       images: [shareImage]
     }
@@ -68,5 +70,11 @@ async function getPostSummary(postId: string) {
 
 function summarize(content: string) {
   const text = content.replace(/\s+/g, " ").trim();
-  return text.length > 72 ? `${text.slice(0, 72)}...` : text;
+  return text.length > 60 ? `${text.slice(0, 60)}...` : text;
+}
+
+function getSiteUrl() {
+  const value = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+  if (/^https?:\/\//.test(value) && !/localhost|127\.0\.0\.1/.test(value)) return value.replace(/\/$/, "");
+  return "https://jinri-pofang.vercel.app";
 }

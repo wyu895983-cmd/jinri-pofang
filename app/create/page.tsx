@@ -37,6 +37,8 @@ export default function CreatePage() {
     try {
       setSubmitting(true);
       const post = await createPost(text);
+      event.currentTarget.reset();
+      setDraft("");
       router.push(`/post/${post.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "发布失败了。");

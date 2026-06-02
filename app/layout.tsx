@@ -7,7 +7,7 @@ import { PopoAssistant } from "@/components/popo-assistant";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://jinri-pofang.vercel.app";
+const siteUrl = getSiteUrl();
 const shareImage = "/share-card.png";
 
 export const metadata: Metadata = {
@@ -71,4 +71,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </body>
     </html>
   );
+}
+
+function getSiteUrl() {
+  const value = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+  if (/^https?:\/\//.test(value) && !/localhost|127\.0\.0\.1/.test(value)) return value.replace(/\/$/, "");
+  return "https://jinri-pofang.vercel.app";
 }
