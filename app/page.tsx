@@ -8,7 +8,7 @@ import { DynamicHeadline } from "@/components/dynamic-headline";
 import { FeedSkeleton } from "@/components/skeleton";
 import { LocalPostCard } from "@/components/local-post-card";
 import { Toast } from "@/components/toast";
-import { getCurrentUser, getFavorites, getPosts, isFavorite, likePost, LocalPost, toggleFavorite } from "@/lib/storage";
+import { getCurrentUser, getFavorites, getPosts, isFavorite, likePost, LocalPost, subscribeToPostFeed, toggleFavorite } from "@/lib/storage";
 
 const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
 const NETWORK_TOAST = "网络开小差了，稍后再试";
@@ -32,8 +32,18 @@ export default function HomePage() {
 
   useEffect(() => {
     refresh();
+    let refreshTimer: number | undefined;
+    const refreshSoon = () => {
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(refresh, 120);
+    };
+    const unsubscribe = subscribeToPostFeed(refreshSoon);
     window.addEventListener("pofang:storage-change", refresh);
-    return () => window.removeEventListener("pofang:storage-change", refresh);
+    return () => {
+      unsubscribe();
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      window.removeEventListener("pofang:storage-change", refresh);
+    };
   }, []);
 
   const reactionCount = useMemo(() => posts.reduce((sum, post) => sum + post.reaction_count + post.comment_count, 0), [posts]);

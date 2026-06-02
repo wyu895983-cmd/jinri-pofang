@@ -389,6 +389,74 @@ export function subscribeToNotifications(onInsert: () => void) {
   };
 }
 
+export function subscribeToPostFeed(onChange: () => void) {
+  if (!isSupabaseBrowserConfigured()) return () => undefined;
+
+  const supabase = createSupabaseBrowserClient();
+  const channel = supabase
+    .channel("post-feed")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "posts"
+      },
+      onChange
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
+export function subscribeToPost(postId: string, onChange: () => void) {
+  if (!isSupabaseBrowserConfigured() || postId.startsWith("mock-")) return () => undefined;
+
+  const supabase = createSupabaseBrowserClient();
+  const channel = supabase
+    .channel(`post:${postId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "posts",
+        filter: `id=eq.${postId}`
+      },
+      onChange
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
+export function subscribeToComments(postId: string, onChange: () => void) {
+  if (!isSupabaseBrowserConfigured() || postId.startsWith("mock-")) return () => undefined;
+
+  const supabase = createSupabaseBrowserClient();
+  const channel = supabase
+    .channel(`comments:${postId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "comments",
+        filter: `post_id=eq.${postId}`
+      },
+      onChange
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
 export async function enterWithNickname(nickname: string, passphrase = "") {
   const trimmed = nickname.trim().slice(0, 12);
   if (!trimmed) throw new Error("请输入昵称");

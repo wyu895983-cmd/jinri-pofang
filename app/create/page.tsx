@@ -13,6 +13,7 @@ export default function CreatePage() {
   const [user, setUser] = useState<LocalUser | null>(null);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const current = getCurrentUser();
@@ -25,6 +26,7 @@ export default function CreatePage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return;
     const text = String(new FormData(event.currentTarget).get("content") ?? "").trim();
 
     if (!text) {
@@ -33,10 +35,12 @@ export default function CreatePage() {
     }
 
     try {
+      setSubmitting(true);
       const post = await createPost(text);
       router.push(`/post/${post.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "发布失败了。");
+      setSubmitting(false);
     }
   }
 
@@ -71,7 +75,9 @@ export default function CreatePage() {
         <StickerPicker />
         <div className="mt-5 flex items-center justify-between gap-4">
           <p className="text-meta text-muted">发布消耗 1 点怨气值，获得 2 EXP。</p>
-          <button className="app-button bg-acid text-ink hover:brightness-110">发射</button>
+          <button className="app-button bg-acid text-ink hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60" disabled={submitting}>
+            {submitting ? "发送中..." : "发射"}
+          </button>
         </div>
       </form>
     </div>

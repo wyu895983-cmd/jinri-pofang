@@ -7,7 +7,20 @@ import { LocalPostCard } from "@/components/local-post-card";
 import { RichContent } from "@/components/rich-content";
 import { StickerPicker } from "@/components/sticker-picker";
 import { Toast } from "@/components/toast";
-import { createComment, getComments, getCurrentUser, getPost, isFavorite, likeComment, likePost, LocalComment, LocalPost, toggleFavorite } from "@/lib/storage";
+import {
+  createComment,
+  getComments,
+  getCurrentUser,
+  getPost,
+  isFavorite,
+  likeComment,
+  likePost,
+  LocalComment,
+  LocalPost,
+  subscribeToComments,
+  subscribeToPost,
+  toggleFavorite
+} from "@/lib/storage";
 
 const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
 const NETWORK_TOAST = "网络开小差了，稍后再试";
@@ -25,6 +38,7 @@ export default function PostDetailPage() {
   const [loaded, setLoaded] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [replyTarget, setReplyTarget] = useState<LocalComment | null>(null);
+  const [submittingComment, setSubmittingComment] = useState(false);
   const [pendingPostIds, setPendingPostIds] = useState<Set<string>>(new Set());
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(new Set());
   const topComments = useMemo(() => comments.filter((comment) => !comment.parent_comment_id), [comments]);
@@ -53,8 +67,20 @@ export default function PostDetailPage() {
 
   useEffect(() => {
     refresh();
+    let refreshTimer: number | undefined;
+    const refreshSoon = () => {
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(refresh, 120);
+    };
+    const unsubscribePost = subscribeToPost(params.id, refreshSoon);
+    const unsubscribeComments = subscribeToComments(params.id, refreshSoon);
     window.addEventListener("pofang:storage-change", refresh);
-    return () => window.removeEventListener("pofang:storage-change", refresh);
+    return () => {
+      unsubscribePost();
+      unsubscribeComments();
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      window.removeEventListener("pofang:storage-change", refresh);
+    };
   }, [params.id]);
 
   useEffect(() => {
@@ -81,6 +107,12 @@ export default function PostDetailPage() {
     };
   }, [comments, commentsLoading]);
 
+  useEffect(() => {
+    if (replyTarget && !comments.some((comment) => comment.id === replyTarget.id)) {
+      setReplyTarget(null);
+    }
+  }, [comments, replyTarget]);
+
   function requireName() {
     if (getCurrentUser()) return true;
     router.push(loginPrompt);
@@ -89,9 +121,11 @@ export default function PostDetailPage() {
 
   async function submitComment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittingComment) return;
     if (!requireName()) return;
 
     try {
+      setSubmittingComment(true);
       await createComment(params.id, String(new FormData(event.currentTarget).get("content") ?? ""), replyTarget?.id ?? null);
       event.currentTarget.reset();
       setReplyTarget(null);
@@ -99,6 +133,8 @@ export default function PostDetailPage() {
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "评论失败了。");
+    } finally {
+      setSubmittingComment(false);
     }
   }
 
@@ -196,7 +232,9 @@ export default function PostDetailPage() {
             rows={3}
           />
           <StickerPicker />
-          <button className="app-button mt-3 bg-acid text-ink hover:brightness-110">评论</button>
+          <button className="app-button mt-3 bg-acid text-ink hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60" disabled={submittingComment}>
+            {submittingComment ? "发送中..." : "评论"}
+          </button>
         </form>
 
         <div className="mt-6 space-y-3">
@@ -214,7 +252,7 @@ export default function PostDetailPage() {
               >
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <img alt="" className="h-9 w-9 rounded-2xl border border-acid/20 bg-acid/10 object-contain p-1" src={comment.avatar_url} />
+                    <img alt="" className="h-9 w-9 rounded-2xl border border-acid/20 bg-acid/10 object-contain p-1" decoding="async" loading="lazy" src={comment.avatar_url} />
                     <div className="min-w-0">
                       <p className="truncate text-[15px] font-semibold leading-5 text-white">{comment.nickname}</p>
                       <p className="mt-1 text-meta text-muted">{formatCommentTime(comment.created_at)}</p>
@@ -244,7 +282,7 @@ export default function PostDetailPage() {
                       <article className="rounded-card border border-line bg-ink/35 p-3" id={`comment-${reply.id}`} key={reply.id}>
                         <div className="mb-2 flex items-center justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-2">
-                            <img alt="" className="h-7 w-7 rounded-xl border border-acid/20 bg-acid/10 object-contain p-1" src={reply.avatar_url} />
+                            <img alt="" className="h-7 w-7 rounded-xl border border-acid/20 bg-acid/10 object-contain p-1" decoding="async" loading="lazy" src={reply.avatar_url} />
                             <div className="min-w-0">
                               <p className="truncate text-[14px] font-semibold leading-5 text-white">{reply.nickname}</p>
                               <p className="mt-0.5 text-meta text-muted">{formatCommentTime(reply.created_at)}</p>

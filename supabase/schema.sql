@@ -381,7 +381,15 @@ begin
     select 'comment', profile_uuid, from_profile.nickname, notify_owner, post_uuid, row_comment.id, p.content, row_comment.content
     from public.posts p
     join public.profiles from_profile on from_profile.id = profile_uuid
-    where p.id = post_uuid;
+    where p.id = post_uuid
+      and not exists (
+        select 1 from public.notifications n
+        where n.type = 'comment'
+          and n."fromUserId" = profile_uuid
+          and n."toUserId" = notify_owner
+          and n."postId" = post_uuid
+          and n."commentId" = row_comment.id
+      );
   end if;
 
   return row_comment;
@@ -433,7 +441,14 @@ begin
     select 'like', profile_uuid, from_profile.nickname, owner_id, post_uuid, p.content
     from public.posts p
     join public.profiles from_profile on from_profile.id = profile_uuid
-    where p.id = post_uuid;
+    where p.id = post_uuid
+      and not exists (
+        select 1 from public.notifications n
+        where n.type = 'like'
+          and n."fromUserId" = profile_uuid
+          and n."toUserId" = owner_id
+          and n."postId" = post_uuid
+      );
   end if;
 
   foreach milestone in array array[5, 10, 20, 50, 100, 500]
@@ -549,6 +564,8 @@ grant execute on function public.react_to_comment(uuid, uuid) to anon, authentic
 revoke execute on function public.add_exp(uuid, text, integer, integer, uuid, text) from public, anon, authenticated;
 
 alter table public.notifications replica identity full;
+alter table public.posts replica identity full;
+alter table public.comments replica identity full;
 do $$
 begin
   if not exists (
@@ -559,6 +576,26 @@ begin
       and tablename = 'notifications'
   ) then
     alter publication supabase_realtime add table public.notifications;
+  end if;
+
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'posts'
+  ) then
+    alter publication supabase_realtime add table public.posts;
+  end if;
+
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'comments'
+  ) then
+    alter publication supabase_realtime add table public.comments;
   end if;
 end;
 $$;
