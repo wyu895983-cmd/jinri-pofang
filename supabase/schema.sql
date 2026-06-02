@@ -82,11 +82,15 @@ create table if not exists public.notifications (
   "fromUserName" text not null,
   "toUserId" uuid not null references public.profiles(id) on delete cascade,
   "postId" uuid not null references public.posts(id) on delete cascade,
+  "commentId" uuid references public.comments(id) on delete cascade,
   "postText" text not null,
   "commentText" text,
   "createdAt" timestamptz not null default now(),
   read boolean not null default false
 );
+
+alter table public.notifications
+  add column if not exists "commentId" uuid references public.comments(id) on delete cascade;
 
 create index if not exists posts_created_at_idx on public.posts(created_at desc);
 create index if not exists posts_user_id_idx on public.posts(user_id);
@@ -346,8 +350,8 @@ begin
   if post_owner <> profile_uuid then
     perform public.add_exp(post_owner, 'received_comment', 1, 20, row_comment.id, null);
 
-    insert into public.notifications(type, "fromUserId", "fromUserName", "toUserId", "postId", "postText", "commentText")
-    select 'comment', profile_uuid, from_profile.nickname, post_owner, post_uuid, p.content, row_comment.content
+    insert into public.notifications(type, "fromUserId", "fromUserName", "toUserId", "postId", "commentId", "postText", "commentText")
+    select 'comment', profile_uuid, from_profile.nickname, post_owner, post_uuid, row_comment.id, p.content, row_comment.content
     from public.posts p
     join public.profiles from_profile on from_profile.id = profile_uuid
     where p.id = post_uuid;

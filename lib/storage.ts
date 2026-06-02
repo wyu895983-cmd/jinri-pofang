@@ -53,6 +53,7 @@ export type InteractionNotification = {
   id: string;
   type: "like" | "comment";
   postId: string;
+  commentId?: string;
   postText: string;
   commentText?: string;
   createdAt: string;
@@ -70,7 +71,7 @@ const RANDOM_NICKNAMES = ["今日路过", "普通破防人", "地铁发呆员", 
 const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
 const COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
 const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date";
-const NOTIFICATION_COLUMNS = 'id,type,fromUserId,fromUserName,toUserId,postId,postText,commentText,createdAt,read';
+const NOTIFICATION_COLUMNS = 'id,type,fromUserId,fromUserName,toUserId,postId,commentId,postText,commentText,createdAt,read';
 
 const mockNicknames = ["匿名路过", "今天先忍了", "还能再撑会儿", "地铁发呆员", "情绪待机中", "普通熬夜人"];
 
@@ -503,7 +504,7 @@ export async function getComments(postId: string) {
     try {
       const supabase = createSupabaseBrowserClient();
       const [{ data: rows, error }, { data: reactions }] = await Promise.all([
-        supabase.from("comment_feed").select(COMMENT_FEED_COLUMNS).eq("post_id", postId).order("created_at", { ascending: true }),
+        supabase.from("comment_feed").select(COMMENT_FEED_COLUMNS).eq("post_id", postId).order("like_count", { ascending: false }).order("created_at", { ascending: false }),
         user
           ? supabase.from("reactions").select("comment_id").eq("user_id", user.guest_user_id).not("comment_id", "is", null)
           : Promise.resolve({ data: [] })
@@ -518,7 +519,7 @@ export async function getComments(postId: string) {
 
   return readJson<LocalComment[]>(COMMENTS_KEY, [])
     .filter((comment) => comment.post_id === postId)
-    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+    .sort((a, b) => b.like_count - a.like_count || Date.parse(b.created_at) - Date.parse(a.created_at));
 }
 
 export async function createComment(postId: string, content: string) {

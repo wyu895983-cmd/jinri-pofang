@@ -105,6 +105,14 @@ export default function ProfilePage() {
     return text.length > 42 ? `${text.slice(0, 42)}...` : text;
   }
 
+  function notificationHref(notification: InteractionNotification) {
+    if (notification.type === "comment" && notification.commentId) {
+      return `/post/${notification.postId}#comment-${notification.commentId}`;
+    }
+
+    return `/post/${notification.postId}`;
+  }
+
   return (
     <div className="space-y-5">
       <section className="glass rounded-card p-5">
@@ -136,7 +144,7 @@ export default function ProfilePage() {
             <div className="space-y-3">
               {commentNotifications.length ? (
                 commentNotifications.map((notification) => (
-                  <Link className="block rounded-card border border-line bg-white/[0.035] p-3 transition hover:border-acid/35" href={`/post/${notification.postId}`} key={notification.id}>
+                  <Link className="block rounded-card border border-line bg-white/[0.035] p-3 transition hover:border-acid/35" href={notificationHref(notification)} key={notification.id}>
                     <p className="text-meta text-muted">{formatNotificationTime(notification.createdAt)}</p>
                     <p className="mt-2 text-body text-zinc-100">有人评论了你的吐槽</p>
                     <p className="mt-1 line-clamp-2 text-meta text-muted">{preview(notification.postText)}</p>

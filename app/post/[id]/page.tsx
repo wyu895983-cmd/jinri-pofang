@@ -39,6 +39,17 @@ export default function PostDetailPage() {
     return () => window.removeEventListener("pofang:storage-change", refresh);
   }, [params.id]);
 
+  useEffect(() => {
+    if (!comments.length || !window.location.hash.startsWith("#comment-")) return;
+
+    const target = document.getElementById(window.location.hash.slice(1));
+    if (!target) return;
+
+    window.setTimeout(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+  }, [comments]);
+
   function requireName() {
     if (getCurrentUser()) return true;
     router.push(loginPrompt);
@@ -149,6 +160,7 @@ export default function PostDetailPage() {
             comments.map((comment, index) => (
               <motion.article
                 className="rounded-card border border-line bg-white/[0.035] p-4"
+                id={`comment-${comment.id}`}
                 initial={{ opacity: 0, y: 14, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.28, delay: Math.min(index * 0.04, 0.2) }}
