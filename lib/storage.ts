@@ -72,6 +72,7 @@ const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,rea
 const COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
 const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date";
 const NOTIFICATION_COLUMNS = 'id,type,fromUserId,fromUserName,toUserId,postId,commentId,postText,commentText,createdAt,read';
+let cachedUser: LocalUser | null | undefined;
 
 const mockNicknames = ["匿名路过", "今天先忍了", "还能再撑会儿", "地铁发呆员", "情绪待机中", "普通熬夜人"];
 
@@ -128,6 +129,7 @@ function mergeProfileKeys(user: LocalUser) {
 function saveUser(user: LocalUser) {
   const next = mergeProfileKeys(user);
   writeProfileKeys(next);
+  cachedUser = next;
   writeJson(USER_KEY, next);
   return next;
 }
@@ -230,12 +232,16 @@ function localEnterWithNickname(nickname: string) {
 }
 
 export function getCurrentUser() {
-  const user = readJson<LocalUser | null>(USER_KEY, null);
-  if (!user) return null;
+  const user = cachedUser !== undefined ? cachedUser : readJson<LocalUser | null>(USER_KEY, null);
+  if (!user) {
+    cachedUser = null;
+    return null;
+  }
   const next = mergeProfileKeys(user);
   if (next.nickname !== user.nickname || next.avatar_url !== user.avatar_url) {
     saveUser(next);
   }
+  cachedUser = next;
   return next;
 }
 
@@ -397,6 +403,7 @@ export async function enterWithNickname(nickname: string, passphrase = "") {
 }
 
 export function signOutLocalUser() {
+  cachedUser = null;
   window.localStorage.removeItem(USER_KEY);
   window.dispatchEvent(new CustomEvent("pofang:storage-change"));
 }
@@ -425,6 +432,24 @@ export async function getPosts() {
 }
 
 export async function getPost(postId: string) {
+  const user = getCurrentUser();
+
+  if (isSupabaseBrowserConfigured() && !postId.startsWith("mock-")) {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const [{ data: row, error }, { data: reactions }] = await Promise.all([
+        supabase.from("post_feed").select(POST_FEED_COLUMNS).eq("id", postId).single(),
+        user
+          ? supabase.from("reactions").select("post_id").eq("user_id", user.guest_user_id).eq("post_id", postId).limit(1)
+          : Promise.resolve({ data: [] })
+      ]);
+      if (error) throw error;
+      return row ? toPost(row, reactions?.length && user ? [user.guest_user_id] : []) : null;
+    } catch {
+      // Fall back to the feed path for local/mock data or transient query failures.
+    }
+  }
+
   const posts = await getPosts();
   return posts.find((post) => post.id === postId) ?? null;
 }
@@ -503,13 +528,18 @@ export async function getComments(postId: string) {
   if (isSupabaseBrowserConfigured() && !postId.startsWith("mock-")) {
     try {
       const supabase = createSupabaseBrowserClient();
-      const [{ data: rows, error }, { data: reactions }] = await Promise.all([
-        supabase.from("comment_feed").select(COMMENT_FEED_COLUMNS).eq("post_id", postId).order("like_count", { ascending: false }).order("created_at", { ascending: false }),
-        user
-          ? supabase.from("reactions").select("comment_id").eq("user_id", user.guest_user_id).not("comment_id", "is", null)
-          : Promise.resolve({ data: [] })
-      ]);
+      const { data: rows, error } = await supabase
+        .from("comment_feed")
+        .select(COMMENT_FEED_COLUMNS)
+        .eq("post_id", postId)
+        .order("like_count", { ascending: false })
+        .order("created_at", { ascending: false });
       if (error) throw error;
+      const commentIds = (rows ?? []).map((row: any) => row.id);
+      const { data: reactions } =
+        user && commentIds.length
+          ? await supabase.from("reactions").select("comment_id").eq("user_id", user.guest_user_id).in("comment_id", commentIds)
+          : { data: [] };
       const liked = new Set((reactions ?? []).map((reaction: any) => reaction.comment_id));
       return (rows ?? []).map((row: any) => toComment(row, liked.has(row.id) && user ? [user.guest_user_id] : []));
     } catch {

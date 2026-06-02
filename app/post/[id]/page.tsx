@@ -22,15 +22,21 @@ export default function PostDetailPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(true);
   const [pendingPostIds, setPendingPostIds] = useState<Set<string>>(new Set());
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(new Set());
 
   async function refresh() {
     const current = getCurrentUser();
     setUserId(current?.guest_user_id ?? null);
-    setPost(await getPost(params.id));
-    setComments(await getComments(params.id));
+    setCommentsLoading(true);
+    const [nextPost, nextComments] = await Promise.all([getPost(params.id), getComments(params.id)]);
+    setPost(nextPost);
+    setComments(nextComments);
     setFavorited(isFavorite(params.id));
+    setLoaded(true);
+    setCommentsLoading(false);
   }
 
   useEffect(() => {
@@ -40,15 +46,28 @@ export default function PostDetailPage() {
   }, [params.id]);
 
   useEffect(() => {
-    if (!comments.length || !window.location.hash.startsWith("#comment-")) return;
+    if (commentsLoading || !window.location.hash.startsWith("#comment-")) return;
 
-    const target = document.getElementById(window.location.hash.slice(1));
-    if (!target) return;
+    let timeout: number | undefined;
+    let attempts = 0;
+    const targetId = window.location.hash.slice(1);
 
-    window.setTimeout(() => {
-      target.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 80);
-  }, [comments]);
+    function scrollWhenReady() {
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
+      attempts += 1;
+      if (attempts < 5) timeout = window.setTimeout(scrollWhenReady, 100);
+    }
+
+    timeout = window.setTimeout(scrollWhenReady, 0);
+    return () => {
+      if (timeout) window.clearTimeout(timeout);
+    };
+  }, [comments, commentsLoading]);
 
   function requireName() {
     if (getCurrentUser()) return true;
@@ -124,6 +143,10 @@ export default function PostDetailPage() {
     }
   }
 
+  if (!loaded && !post) {
+    return <PostDetailSkeleton />;
+  }
+
   if (!post) {
     return <div className="glass rounded-card p-8 text-center text-meta text-muted">这条破防瞬间已经找不到了。</div>;
   }
@@ -156,7 +179,9 @@ export default function PostDetailPage() {
         </form>
 
         <div className="mt-6 space-y-3">
-          {comments.length ? (
+          {commentsLoading && !comments.length ? (
+            <CommentSkeleton />
+          ) : comments.length ? (
             comments.map((comment, index) => (
               <motion.article
                 className="rounded-card border border-line bg-white/[0.035] p-4"
@@ -230,6 +255,47 @@ function showNetworkToast(setToast: (value: string) => void) {
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function PostDetailSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="glass rounded-card p-5">
+        <div className="h-4 w-24 animate-pulse rounded-full bg-white/10" />
+        <div className="mt-5 space-y-3">
+          <div className="h-4 animate-pulse rounded-full bg-white/10" />
+          <div className="h-4 w-4/5 animate-pulse rounded-full bg-white/10" />
+          <div className="h-4 w-2/3 animate-pulse rounded-full bg-white/10" />
+        </div>
+      </div>
+      <section className="glass rounded-card p-5">
+        <div className="h-5 w-20 animate-pulse rounded-full bg-white/10" />
+        <CommentSkeleton />
+      </section>
+    </div>
+  );
+}
+
+function CommentSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[0, 1, 2].map((item) => (
+        <div className="rounded-card border border-line bg-white/[0.035] p-4" key={item}>
+          <div className="mb-3 flex items-center gap-3">
+            <div className="h-9 w-9 animate-pulse rounded-2xl bg-acid/10" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="h-3 w-24 animate-pulse rounded-full bg-white/10" />
+              <div className="h-3 w-16 animate-pulse rounded-full bg-white/10" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-3 animate-pulse rounded-full bg-white/10" />
+            <div className="h-3 w-3/4 animate-pulse rounded-full bg-white/10" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function formatCommentTime(value: string) {

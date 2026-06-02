@@ -18,6 +18,7 @@ import {
   InteractionNotification,
   LocalPost,
   LocalUser,
+  getCurrentUser,
   markNotificationsRead,
   refreshCurrentUser,
   signOutLocalUser,
@@ -34,25 +35,49 @@ export default function ProfilePage() {
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [notifications, setNotifications] = useState<InteractionNotification[]>([]);
 
-  async function refresh() {
+  async function refresh(markRead = false) {
+    const cached = getCurrentUser();
+    if (cached) {
+      setUser(cached);
+      setNickname(cached.nickname);
+      setAvatar(cached.avatar_url);
+    }
+
     const current = await refreshCurrentUser();
     setUser(current);
     setNickname(current?.nickname ?? "");
     setAvatar(current?.avatar_url ?? "");
     setFavoriteCount(getFavorites().length);
-    setNotifications(await getNotifications());
-    setPosts(current ? (await getPosts()).filter((post) => post.user_id === current.guest_user_id) : []);
+    if (!current) {
+      setNotifications([]);
+      setPosts([]);
+      return;
+    }
+
+    const [nextNotifications, nextPosts] = await Promise.all([markRead ? markNotificationsRead() : getNotifications(), getPosts()]);
+    setNotifications(nextNotifications);
+    setPosts(nextPosts.filter((post) => post.user_id === current.guest_user_id));
   }
 
   useEffect(() => {
+    let active = true;
+    let listening = false;
+    const refreshFromStorage = () => {
+      if (active) void refresh();
+    };
+
     async function load() {
-      await refresh();
-      setNotifications(await markNotificationsRead());
+      await refresh(true);
+      if (!active) return;
+      window.addEventListener("pofang:storage-change", refreshFromStorage);
+      listening = true;
     }
 
     void load();
-    window.addEventListener("pofang:storage-change", refresh);
-    return () => window.removeEventListener("pofang:storage-change", refresh);
+    return () => {
+      active = false;
+      if (listening) window.removeEventListener("pofang:storage-change", refreshFromStorage);
+    };
   }, []);
 
   async function saveAvatar() {
