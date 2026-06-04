@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { LocalPostCard } from "@/components/local-post-card";
 import { RichContent } from "@/components/rich-content";
 import { StickerPicker } from "@/components/sticker-picker";
@@ -38,6 +38,8 @@ export default function PostDetailPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [replyTarget, setReplyTarget] = useState<LocalComment | null>(null);
@@ -59,6 +61,7 @@ export default function PostDetailPage() {
   }, [comments]);
 
   async function refresh() {
+    if (deletingRef.current) return;
     const current = getCurrentUser();
     setUserId(getCurrentUserId(current));
     setCommentsLoading(true);
@@ -200,10 +203,13 @@ export default function PostDetailPage() {
   async function handleDelete() {
     if (!post || !window.confirm("确定删除这条破防吗？")) return;
     try {
+      deletingRef.current = true;
       await deletePost(post.id);
       setToast("已删除");
-      window.setTimeout(() => router.push("/"), 800);
+      setDeleting(true);
+      window.setTimeout(() => router.push("/"), 1100);
     } catch (err) {
+      deletingRef.current = false;
       setError(err instanceof Error ? err.message : "删除失败");
     }
   }
@@ -223,16 +229,31 @@ export default function PostDetailPage() {
 
   return (
     <div className="space-y-4">
-      <LocalPostCard
-        disabled={pendingPostIds.has(post.id)}
-        favorited={favorited}
-        liked={Boolean(userId && post.liked_by.includes(userId))}
-        onFavorite={() => setFavorited(toggleFavorite(post.id))}
-        onDelete={Boolean(userId && userId === getPostAuthorId(post)) ? handleDelete : undefined}
-        onLike={() => handlePostReaction()}
-        onEmotion={(reaction) => handlePostReaction(reaction)}
-        post={post}
-      />
+      <motion.div
+        animate={
+          deleting
+            ? {
+                clipPath: ["inset(0% 0% 0% 0%)", "inset(0% 0% 100% 0%)"],
+                filter: ["blur(0px)", "blur(5px)"],
+                opacity: [1, 0],
+                scale: [1, 0.96],
+                y: [0, -28]
+              }
+            : undefined
+        }
+        transition={{ duration: 1, ease: "easeIn" }}
+      >
+        <LocalPostCard
+          disabled={pendingPostIds.has(post.id) || deleting}
+          favorited={favorited}
+          liked={Boolean(userId && post.liked_by.includes(userId))}
+          onFavorite={() => setFavorited(toggleFavorite(post.id))}
+          onDelete={Boolean(userId && userId === getPostAuthorId(post)) ? handleDelete : undefined}
+          onLike={() => handlePostReaction()}
+          onEmotion={(reaction) => handlePostReaction(reaction)}
+          post={post}
+        />
+      </motion.div>
 
       <section className="glass rounded-card p-5">
         <h2 className="text-h2 text-white">评论区</h2>

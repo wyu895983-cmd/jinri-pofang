@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { RichContent } from "@/components/rich-content";
 import type { LocalPost } from "@/lib/storage";
@@ -95,7 +95,8 @@ export function LocalPostCard({
       </Link>
 
       {onDelete ? (
-        <button className="mt-4 text-label text-red-300 transition hover:text-red-200" onClick={onDelete} type="button">
+        <button className="mt-4 inline-flex items-center gap-1.5 text-label text-red-300/70 transition hover:text-red-200" onClick={onDelete} type="button">
+          <Trash2 className="h-3.5 w-3.5" />
           删除
         </button>
       ) : null}

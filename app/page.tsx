@@ -8,7 +8,7 @@ import { DynamicHeadline } from "@/components/dynamic-headline";
 import { FeedSkeleton } from "@/components/skeleton";
 import { LocalPostCard } from "@/components/local-post-card";
 import { Toast } from "@/components/toast";
-import { deletePost, getCurrentUser, getCurrentUserId, getFavorites, getPostAuthorId, getPosts, isFavorite, likePost, LocalPost, subscribeToPostFeed, toggleFavorite } from "@/lib/storage";
+import { getCurrentUser, getCurrentUserId, getFavorites, getPosts, isFavorite, likePost, LocalPost, subscribeToPostFeed, toggleFavorite } from "@/lib/storage";
 
 const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
 const NETWORK_TOAST = "网络开小差了，稍后再试";
@@ -85,18 +85,6 @@ export default function HomePage() {
     }
   }
 
-  async function handleDelete(postId: string) {
-    if (!window.confirm("确定删除这条破防吗？")) return;
-    try {
-      await deletePost(postId);
-      setPosts((value) => value.filter((post) => post.id !== postId));
-      showToast(setToast, "已删除");
-      await refresh();
-    } catch (err) {
-      showToast(setToast, err instanceof Error ? err.message : "删除失败");
-    }
-  }
-
   return (
     <div className="space-y-5">
       <section>
@@ -143,7 +131,6 @@ export default function HomePage() {
               key={post.id}
               liked={Boolean(userId && post.liked_by.includes(userId))}
               onFavorite={() => handleFavorite(post.id)}
-              onDelete={Boolean(userId && userId === getPostAuthorId(post)) ? () => handleDelete(post.id) : undefined}
               onLike={() => handleLike(post.id)}
               onEmotion={(reaction) => handleLike(post.id, reaction)}
               post={post}
