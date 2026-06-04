@@ -28,6 +28,18 @@ import {
 const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
 const NETWORK_TOAST = "网络开小差了，稍后再试";
 const LIKE_LOCK_MS = 500;
+const DELETE_PARTICLES = [
+  { bottom: "5%", color: "bg-acid/70", delay: 0, left: "8%", x: -12 },
+  { bottom: "9%", color: "bg-zinc-400/60", delay: 0.03, left: "17%", x: 8 },
+  { bottom: "4%", color: "bg-acid/60", delay: 0.06, left: "27%", x: -5 },
+  { bottom: "12%", color: "bg-zinc-500/70", delay: 0.01, left: "36%", x: 13 },
+  { bottom: "7%", color: "bg-acid/70", delay: 0.08, left: "46%", x: -10 },
+  { bottom: "15%", color: "bg-zinc-400/60", delay: 0.04, left: "55%", x: 7 },
+  { bottom: "6%", color: "bg-acid/60", delay: 0.02, left: "64%", x: -8 },
+  { bottom: "11%", color: "bg-zinc-500/70", delay: 0.07, left: "73%", x: 11 },
+  { bottom: "5%", color: "bg-acid/70", delay: 0.05, left: "82%", x: -6 },
+  { bottom: "14%", color: "bg-zinc-400/60", delay: 0, left: "91%", x: 9 }
+] as const;
 
 export default function PostDetailPage() {
   const params = useParams<{ id: string }>();
@@ -232,35 +244,50 @@ export default function PostDetailPage() {
 
   return (
     <div className="space-y-4">
-      <motion.div
-        animate={
-          deleting
-            ? {
-                clipPath: ["inset(0% 0% 0% 0%)", "inset(0% 0% 100% 0%)"],
-                filter: ["blur(0px)", "blur(6px)"],
-                opacity: [1, 0],
-                y: [0, -20]
-              }
-            : {
-                clipPath: "inset(0% 0% 0% 0%)",
-                filter: "blur(0px)",
-                opacity: 1,
-                y: 0
-              }
-        }
-        transition={{ duration: 0.8, ease: "easeIn" }}
-      >
-        <LocalPostCard
-          disabled={pendingPostIds.has(post.id) || deleting}
-          favorited={favorited}
-          liked={Boolean(userId && post.liked_by.includes(userId))}
-          onFavorite={() => setFavorited(toggleFavorite(post.id))}
-          onDelete={Boolean(userId && userId === getPostAuthorId(post)) ? handleDelete : undefined}
-          onLike={() => handlePostReaction()}
-          onEmotion={(reaction) => handlePostReaction(reaction)}
-          post={post}
-        />
-      </motion.div>
+      <div className="relative">
+        <motion.div
+          animate={
+            deleting
+              ? {
+                  clipPath: ["inset(0% 0% 0% 0%)", "inset(0% 0% 100% 0%)"],
+                  filter: ["blur(0px)", "blur(6px)"],
+                  opacity: [1, 0],
+                  y: [0, -20]
+                }
+              : {
+                  clipPath: "inset(0% 0% 0% 0%)",
+                  filter: "blur(0px)",
+                  opacity: 1,
+                  y: 0
+                }
+          }
+          transition={{ duration: 0.8, ease: "easeIn" }}
+        >
+          <LocalPostCard
+            disabled={pendingPostIds.has(post.id) || deleting}
+            favorited={favorited}
+            liked={Boolean(userId && post.liked_by.includes(userId))}
+            onFavorite={() => setFavorited(toggleFavorite(post.id))}
+            onDelete={Boolean(userId && userId === getPostAuthorId(post)) ? handleDelete : undefined}
+            onLike={() => handlePostReaction()}
+            onEmotion={(reaction) => handlePostReaction(reaction)}
+            post={post}
+          />
+        </motion.div>
+
+        {deleting
+          ? DELETE_PARTICLES.map((particle, index) => (
+              <motion.span
+                animate={{ opacity: [0, 0.9, 0], rotate: [0, index % 2 ? 35 : -35], x: particle.x, y: -70 - (index % 3) * 14 }}
+                className={`pointer-events-none absolute h-1.5 w-1 ${particle.color}`}
+                initial={{ opacity: 0, rotate: 0, x: 0, y: 0 }}
+                key={`${particle.left}-${particle.bottom}`}
+                style={{ bottom: particle.bottom, left: particle.left }}
+                transition={{ delay: particle.delay, duration: 0.7, ease: "easeOut" }}
+              />
+            ))
+          : null}
+      </div>
 
       <section className="glass rounded-card p-5">
         <h2 className="text-h2 text-white">评论区</h2>
