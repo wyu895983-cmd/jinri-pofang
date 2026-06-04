@@ -42,6 +42,8 @@ export type LocalComment = {
   parent_comment_uuid?: string | null;
   parent_comment_id?: string | null;
   parent_nickname?: string | null;
+  replyToComment?: { id: string; content: string } | null;
+  replyToUser?: { id?: string; nickname: string } | null;
   user_id: string;
   nickname: string;
   avatar_url: string;
@@ -185,6 +187,8 @@ function toComment(row: any, likedBy: string[] = []): LocalComment {
     parent_comment_uuid: parentCommentId,
     parent_comment_id: parentCommentId,
     parent_nickname: row.parent_nickname ?? null,
+    replyToComment: row.replyToComment ?? row.reply_to_comment ?? null,
+    replyToUser: row.replyToUser ?? row.reply_to_user ?? null,
     user_id: row.user_id,
     nickname,
     avatar_url: avatar,
@@ -621,6 +625,24 @@ export async function getComments(postId: string) {
         if (legacyError) throw legacyError;
         nextRows = legacyRows;
       }
+      const { data: relationshipRows } = await supabase
+        .from("comments")
+        .select("id,parent_comment_id,user_id,content")
+        .eq("post_id", postId);
+      const relationshipsById = new Map((relationshipRows ?? []).map((row: any) => [row.id, row]));
+      const feedById = new Map((nextRows ?? []).map((row: any) => [row.id, row]));
+      nextRows = (nextRows ?? []).map((row: any) => {
+        const relationship = relationshipsById.get(row.id);
+        const parentCommentId = row.parent_comment_id ?? relationship?.parent_comment_id ?? null;
+        const parent = parentCommentId ? feedById.get(parentCommentId) ?? relationshipsById.get(parentCommentId) : null;
+        return {
+          ...row,
+          parent_comment_id: parentCommentId,
+          parent_nickname: row.parent_nickname ?? parent?.nickname ?? null,
+          replyToComment: parent ? { id: parent.id, content: parent.content } : null,
+          replyToUser: parent ? { id: parent.user_id, nickname: parent.nickname ?? row.parent_nickname ?? "" } : null
+        };
+      });
       const commentIds = (nextRows ?? []).map((row: any) => row.id);
       const { data: reactions } =
         user && commentIds.length
@@ -694,6 +716,8 @@ export async function createComment(postId: string, content: string, parentComme
     parent_comment_uuid: parentComment?.id ?? null,
     parent_comment_id: parentComment?.id ?? null,
     parent_nickname: parentComment?.nickname ?? null,
+    replyToComment: parentComment ? { id: parentComment.id, content: parentComment.content } : null,
+    replyToUser: parentComment ? { id: parentComment.user_id, nickname: parentComment.nickname } : null,
     user_id: user.guest_user_id,
     nickname: user.nickname,
     avatar_url: user.avatar_url,

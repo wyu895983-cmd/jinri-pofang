@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { CornerDownRight } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { LocalPostCard } from "@/components/local-post-card";
 import { RichContent } from "@/components/rich-content";
@@ -283,6 +282,9 @@ export default function PostDetailPage() {
                   <div className="mt-4 space-y-3 border-l border-acid/20 pl-4">
                     {repliesByParent[comment.id].map((reply) => (
                       <article className="rounded-card border border-line bg-ink/35 p-3" id={`comment-${reply.id}`} key={reply.id}>
+                        <div className="mb-3 rounded-button border-l-2 border-acid/30 bg-white/[0.04] px-3 py-2 text-meta text-muted">
+                          @{getReplyContext(reply, commentsById, comment).nickname}：{getReplyContext(reply, commentsById, comment).content}
+                        </div>
                         <div className="mb-2 flex items-center justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-2">
                             <img alt="" className="h-7 w-7 rounded-xl border border-acid/20 bg-acid/10 object-contain p-1" decoding="async" loading="lazy" src={reply.avatar_url} />
@@ -305,11 +307,7 @@ export default function PostDetailPage() {
                             </motion.span>
                           </motion.button>
                         </div>
-                        <div className="mb-1 flex items-center gap-1.5 text-label text-acid">
-                          <CornerDownRight className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">回复 @{getReplyToName(reply, commentsById, comment)}</span>
-                        </div>
-                        <RichContent className="text-body text-zinc-200" content={reply.content} />
+                        <RichContent className="text-body text-zinc-200" content={`${reply.nickname}：${reply.content}`} />
                         <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setReplyTarget(reply)} type="button">
                           回复
                         </button>
@@ -364,10 +362,13 @@ function getParentCommentId(comment: LocalComment) {
   return comment.parent_comment_uuid ?? comment.parent_comment_id ?? null;
 }
 
-function getReplyToName(reply: LocalComment, commentsById: Map<string, LocalComment>, topLevelComment: LocalComment) {
+function getReplyContext(reply: LocalComment, commentsById: Map<string, LocalComment>, topLevelComment: LocalComment) {
   const parentId = getParentCommentId(reply);
-  if (!parentId) return topLevelComment.nickname;
-  return commentsById.get(parentId)?.nickname || reply.parent_nickname || topLevelComment.nickname;
+  const parentComment = parentId ? commentsById.get(parentId) : null;
+  return {
+    nickname: reply.replyToUser?.nickname || parentComment?.nickname || reply.parent_nickname || topLevelComment.nickname,
+    content: reply.replyToComment?.content || parentComment?.content || topLevelComment.content
+  };
 }
 
 function PostDetailSkeleton() {
