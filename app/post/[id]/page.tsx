@@ -9,6 +9,7 @@ import { StickerPicker } from "@/components/sticker-picker";
 import { Toast } from "@/components/toast";
 import {
   createComment,
+  deletePost,
   getComments,
   getCurrentUser,
   getPost,
@@ -194,12 +195,28 @@ export default function PostDetailPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!post || !window.confirm("确定删除这条破防吗？")) return;
+    try {
+      await deletePost(post.id);
+      setToast("已删除");
+      window.setTimeout(() => router.push("/"), 800);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除失败");
+    }
+  }
+
   if (!loaded && !post) {
     return <PostDetailSkeleton />;
   }
 
   if (!post) {
-    return <div className="glass rounded-card p-8 text-center text-meta text-muted">这条破防瞬间已经找不到了。</div>;
+    return (
+      <>
+        <div className="glass rounded-card p-8 text-center text-meta text-muted">这条破防瞬间已经找不到了。</div>
+        <Toast message={toast} />
+      </>
+    );
   }
 
   return (
@@ -209,6 +226,7 @@ export default function PostDetailPage() {
         favorited={favorited}
         liked={Boolean(userId && post.liked_by.includes(userId))}
         onFavorite={() => setFavorited(toggleFavorite(post.id))}
+        onDelete={userId === post.user_id ? handleDelete : undefined}
         onLike={() => handlePostReaction()}
         onEmotion={(reaction) => handlePostReaction(reaction)}
         post={post}

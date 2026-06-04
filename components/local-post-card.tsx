@@ -29,6 +29,7 @@ export function LocalPostCard({
   onLike,
   onEmotion,
   onFavorite,
+  onDelete,
   disabled = false,
   href = `/post/${post.id}`
 }: {
@@ -39,6 +40,7 @@ export function LocalPostCard({
   onLike: () => void;
   onEmotion?: (reaction: "laugh" | "same" | "broken" | "fire") => void;
   onFavorite?: () => void;
+  onDelete?: () => void;
   disabled?: boolean;
   href?: string;
 }) {
@@ -91,6 +93,12 @@ export function LocalPostCard({
       <Link href={href}>
         <RichContent className="whitespace-pre-wrap break-words text-body text-zinc-100" content={post.content} />
       </Link>
+
+      {onDelete ? (
+        <button className="mt-4 text-label text-red-300 transition hover:text-red-200" onClick={onDelete} type="button">
+          删除
+        </button>
+      ) : null}
 
       {post.reaction_count >= 500 ? (
         <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-yellow-300/50 bg-yellow-300/15 px-3 py-1 text-label text-yellow-200">

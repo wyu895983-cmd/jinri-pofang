@@ -14,6 +14,7 @@ export type LocalUser = {
   energy: number;
   total_posts: number;
   total_likes: number;
+  is_admin?: boolean;
 };
 
 export type FavoriteRecord = {
@@ -76,7 +77,7 @@ const RANDOM_NICKNAMES = ["今日路过", "普通破防人", "地铁发呆员", 
 const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
 const COMMENT_FEED_COLUMNS = "id,post_id,parent_comment_id,parent_nickname,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
 const LEGACY_COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
-const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date";
+const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date,is_admin";
 const NOTIFICATION_COLUMNS = 'id,type,fromUserId,fromUserName,toUserId,postId,commentId,postText,commentText,createdAt,read';
 let cachedUser: LocalUser | null | undefined;
 
@@ -151,7 +152,8 @@ function toUser(row: any): LocalUser {
     exp: Number(row.exp ?? 0),
     energy: Number(row.energy ?? 20),
     total_posts: Number(row.total_posts ?? 0),
-    total_likes: Number(row.total_likes ?? 0)
+    total_likes: Number(row.total_likes ?? 0),
+    is_admin: Boolean(row.is_admin)
   };
 }
 
@@ -567,6 +569,30 @@ export async function createPost(content: string) {
   writeJson(POSTS_KEY, [post, ...posts]);
   saveUser({ ...user, energy: Math.max(user.energy - 1, 0), exp: user.exp + 2, total_posts: user.total_posts + 1 });
   return post;
+}
+
+export async function deletePost(postId: string) {
+  const user = getCurrentUser();
+  if (!user) throw new Error("请先登录");
+
+  if (isSupabaseBrowserConfigured() && !postId.startsWith("mock-")) {
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.rpc("delete_post", {
+      profile_uuid: user.guest_user_id,
+      post_uuid: postId
+    });
+    if (error) throw error;
+  } else {
+    writeJson(
+      POSTS_KEY,
+      seedPosts().filter((post) => post.id !== postId)
+    );
+  }
+
+  writeJson(
+    FAVORITES_KEY,
+    getFavorites().filter((favorite) => favorite.post_id !== postId)
+  );
 }
 
 export async function likePost(postId: string, reaction = "like") {
