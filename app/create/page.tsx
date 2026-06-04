@@ -43,7 +43,7 @@ export default function CreatePage() {
       setDraft("");
       setError("");
       setSuccess("破防已发射 🚀");
-      window.setTimeout(() => router.push("/"), 700);
+      window.setTimeout(() => router.push("/"), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "发布失败了。");
       setSubmitting(false);
