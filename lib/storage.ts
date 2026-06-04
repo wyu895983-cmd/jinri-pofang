@@ -5,6 +5,8 @@ import { createSupabaseBrowserClient, isSupabaseBrowserConfigured } from "@/lib/
 
 export type LocalUser = {
   guest_user_id: string;
+  id?: string;
+  user_id?: string;
   nickname: string;
   avatar_url: string;
   created_at: string;
@@ -25,6 +27,8 @@ export type FavoriteRecord = {
 export type LocalPost = {
   id: string;
   user_id: string;
+  author_id?: string;
+  userId?: string;
   nickname: string;
   avatar_url: string;
   content: string;
@@ -159,12 +163,13 @@ function toUser(row: any): LocalUser {
 
 function toPost(row: any, likedBy: string[] = []): LocalPost {
   const current = getCurrentUser();
-  const isCurrentUserPost = current?.guest_user_id === row.user_id;
+  const postUserId = row.user_id ?? row.author_id ?? row.userId ?? "";
+  const isCurrentUserPost = getCurrentUserId(current) === postUserId;
   const nickname = isCurrentUserPost && current ? current.nickname : row.nickname;
   const avatar = isCurrentUserPost && current ? current.avatar_url : row.avatar_url ?? DEFAULT_AVATARS[0];
   return {
     id: row.id,
-    user_id: row.user_id,
+    user_id: postUserId,
     nickname,
     avatar_url: avatar,
     content: row.content,
@@ -257,6 +262,14 @@ export function getCurrentUser() {
   }
   cachedUser = next;
   return next;
+}
+
+export function getCurrentUserId(user = getCurrentUser()) {
+  return user?.guest_user_id ?? user?.id ?? user?.user_id ?? null;
+}
+
+export function getPostAuthorId(post: LocalPost) {
+  return post.user_id ?? post.author_id ?? post.userId ?? null;
 }
 
 export function getRandomNickname() {
@@ -573,12 +586,13 @@ export async function createPost(content: string) {
 
 export async function deletePost(postId: string) {
   const user = getCurrentUser();
-  if (!user) throw new Error("请先登录");
+  const userId = getCurrentUserId(user);
+  if (!userId) throw new Error("请先登录");
 
   if (isSupabaseBrowserConfigured() && !postId.startsWith("mock-")) {
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.rpc("delete_post", {
-      profile_uuid: user.guest_user_id,
+      profile_uuid: userId,
       post_uuid: postId
     });
     if (error) throw error;

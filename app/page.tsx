@@ -8,7 +8,7 @@ import { DynamicHeadline } from "@/components/dynamic-headline";
 import { FeedSkeleton } from "@/components/skeleton";
 import { LocalPostCard } from "@/components/local-post-card";
 import { Toast } from "@/components/toast";
-import { deletePost, getCurrentUser, getFavorites, getPosts, isFavorite, likePost, LocalPost, subscribeToPostFeed, toggleFavorite } from "@/lib/storage";
+import { deletePost, getCurrentUser, getCurrentUserId, getFavorites, getPostAuthorId, getPosts, isFavorite, likePost, LocalPost, subscribeToPostFeed, toggleFavorite } from "@/lib/storage";
 
 const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
 const NETWORK_TOAST = "网络开小差了，稍后再试";
@@ -24,7 +24,7 @@ export default function HomePage() {
 
   async function refresh() {
     const current = getCurrentUser();
-    setUserId(current?.guest_user_id ?? null);
+    setUserId(getCurrentUserId(current));
     setPosts(await getPosts());
     setFavoriteIds(new Set(getFavorites().map((favorite) => favorite.post_id)));
     setLoading(false);
@@ -143,7 +143,7 @@ export default function HomePage() {
               key={post.id}
               liked={Boolean(userId && post.liked_by.includes(userId))}
               onFavorite={() => handleFavorite(post.id)}
-              onDelete={userId === post.user_id ? () => handleDelete(post.id) : undefined}
+              onDelete={Boolean(userId && userId === getPostAuthorId(post)) ? () => handleDelete(post.id) : undefined}
               onLike={() => handleLike(post.id)}
               onEmotion={(reaction) => handleLike(post.id, reaction)}
               post={post}

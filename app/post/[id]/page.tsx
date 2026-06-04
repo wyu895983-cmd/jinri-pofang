@@ -12,7 +12,9 @@ import {
   deletePost,
   getComments,
   getCurrentUser,
+  getCurrentUserId,
   getPost,
+  getPostAuthorId,
   isFavorite,
   likeComment,
   likePost,
@@ -58,7 +60,7 @@ export default function PostDetailPage() {
 
   async function refresh() {
     const current = getCurrentUser();
-    setUserId(current?.guest_user_id ?? null);
+    setUserId(getCurrentUserId(current));
     setCommentsLoading(true);
     const [nextPost, nextComments] = await Promise.all([getPost(params.id), getComments(params.id)]);
     setPost(nextPost);
@@ -226,7 +228,7 @@ export default function PostDetailPage() {
         favorited={favorited}
         liked={Boolean(userId && post.liked_by.includes(userId))}
         onFavorite={() => setFavorited(toggleFavorite(post.id))}
-        onDelete={userId === post.user_id ? handleDelete : undefined}
+        onDelete={Boolean(userId && userId === getPostAuthorId(post)) ? handleDelete : undefined}
         onLike={() => handlePostReaction()}
         onEmotion={(reaction) => handlePostReaction(reaction)}
         post={post}
