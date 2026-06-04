@@ -201,15 +201,18 @@ export default function PostDetailPage() {
   }
 
   async function handleDelete() {
-    if (!post || !window.confirm("确定删除这条破防吗？")) return;
+    if (!post || deleting || !window.confirm("确定删除这条破防吗？")) return;
     try {
       deletingRef.current = true;
+      setError("");
+      setDeleting(true);
+      await wait(800);
       await deletePost(post.id);
       setToast("已删除");
-      setDeleting(true);
-      window.setTimeout(() => router.push("/"), 1100);
+      window.setTimeout(() => router.push("/"), 500);
     } catch (err) {
       deletingRef.current = false;
+      setDeleting(false);
       setError(err instanceof Error ? err.message : "删除失败");
     }
   }
@@ -234,14 +237,18 @@ export default function PostDetailPage() {
           deleting
             ? {
                 clipPath: ["inset(0% 0% 0% 0%)", "inset(0% 0% 100% 0%)"],
-                filter: ["blur(0px)", "blur(5px)"],
+                filter: ["blur(0px)", "blur(6px)"],
                 opacity: [1, 0],
-                scale: [1, 0.96],
-                y: [0, -28]
+                y: [0, -20]
               }
-            : undefined
+            : {
+                clipPath: "inset(0% 0% 0% 0%)",
+                filter: "blur(0px)",
+                opacity: 1,
+                y: 0
+              }
         }
-        transition={{ duration: 1, ease: "easeIn" }}
+        transition={{ duration: 0.8, ease: "easeIn" }}
       >
         <LocalPostCard
           disabled={pendingPostIds.has(post.id) || deleting}
