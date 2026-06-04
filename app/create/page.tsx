@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
 import { StickerPicker } from "@/components/sticker-picker";
+import { Toast } from "@/components/toast";
 import { createPost, getCurrentUser, LocalUser } from "@/lib/storage";
 
 const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
@@ -14,6 +15,7 @@ export default function CreatePage() {
   const [error, setError] = useState("");
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     const current = getCurrentUser();
@@ -36,10 +38,12 @@ export default function CreatePage() {
 
     try {
       setSubmitting(true);
-      const post = await createPost(text);
+      await createPost(text);
       event.currentTarget.reset();
       setDraft("");
-      router.push(`/post/${post.id}`);
+      setError("");
+      setSuccess("破防已发射 🚀");
+      window.setTimeout(() => router.push("/"), 700);
     } catch (err) {
       setError(err instanceof Error ? err.message : "发布失败了。");
       setSubmitting(false);
@@ -82,6 +86,7 @@ export default function CreatePage() {
           </button>
         </div>
       </form>
+      <Toast message={success} />
     </div>
   );
 }
