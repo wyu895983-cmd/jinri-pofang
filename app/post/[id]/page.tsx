@@ -28,18 +28,21 @@ import {
 const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
 const NETWORK_TOAST = "网络开小差了，稍后再试";
 const LIKE_LOCK_MS = 500;
-const DELETE_PARTICLES = [
-  { bottom: "5%", color: "bg-acid/70", delay: 0, left: "8%", x: -12 },
-  { bottom: "9%", color: "bg-zinc-400/60", delay: 0.03, left: "17%", x: 8 },
-  { bottom: "4%", color: "bg-acid/60", delay: 0.06, left: "27%", x: -5 },
-  { bottom: "12%", color: "bg-zinc-500/70", delay: 0.01, left: "36%", x: 13 },
-  { bottom: "7%", color: "bg-acid/70", delay: 0.08, left: "46%", x: -10 },
-  { bottom: "15%", color: "bg-zinc-400/60", delay: 0.04, left: "55%", x: 7 },
-  { bottom: "6%", color: "bg-acid/60", delay: 0.02, left: "64%", x: -8 },
-  { bottom: "11%", color: "bg-zinc-500/70", delay: 0.07, left: "73%", x: 11 },
-  { bottom: "5%", color: "bg-acid/70", delay: 0.05, left: "82%", x: -6 },
-  { bottom: "14%", color: "bg-zinc-400/60", delay: 0, left: "91%", x: 9 }
-] as const;
+const DELETE_PARTICLE_COLORS = ["#b7ff3c", "#e4e4e7", "#6b5b86", "#8a9a78"] as const;
+const DELETE_PARTICLES = Array.from({ length: 100 }, (_, index) => {
+  const layer = index % 10;
+  return {
+    color: DELETE_PARTICLE_COLORS[index % DELETE_PARTICLE_COLORS.length],
+    delay: layer * 0.07 + (index % 4) * 0.008,
+    layer,
+    left: 2 + ((index * 37) % 96),
+    round: index % 3 === 0,
+    rotate: index % 2 ? 120 + index * 9 : -120 - index * 9,
+    size: 2 + ((index * 7) % 4),
+    x: -70 + ((index * 53) % 140),
+    y: -45 - ((index * 31) % 75)
+  };
+});
 
 export default function PostDetailPage() {
   const params = useParams<{ id: string }>();
@@ -218,7 +221,7 @@ export default function PostDetailPage() {
       deletingRef.current = true;
       setError("");
       setDeleting(true);
-      await wait(800);
+      await wait(1200);
       await deletePost(post.id);
       setToast("已删除");
       window.setTimeout(() => router.push("/"), 500);
@@ -261,7 +264,7 @@ export default function PostDetailPage() {
                   y: 0
                 }
           }
-          transition={{ duration: 0.8, ease: "easeIn" }}
+          transition={{ duration: 1.2, ease: "easeIn" }}
         >
           <LocalPostCard
             disabled={pendingPostIds.has(post.id) || deleting}
@@ -278,12 +281,20 @@ export default function PostDetailPage() {
         {deleting
           ? DELETE_PARTICLES.map((particle, index) => (
               <motion.span
-                animate={{ opacity: [0, 0.9, 0], rotate: [0, index % 2 ? 35 : -35], x: particle.x, y: -70 - (index % 3) * 14 }}
-                className={`pointer-events-none absolute h-1.5 w-1 ${particle.color}`}
-                initial={{ opacity: 0, rotate: 0, x: 0, y: 0 }}
-                key={`${particle.left}-${particle.bottom}`}
-                style={{ bottom: particle.bottom, left: particle.left }}
-                transition={{ delay: particle.delay, duration: 0.7, ease: "easeOut" }}
+                animate={{ opacity: [0, 1, 0.9, 0], rotate: particle.rotate, scale: [0.6, 1.35, 0.8, 0.2], x: particle.x, y: particle.y }}
+                className="pointer-events-none absolute z-30"
+                initial={{ opacity: 0, rotate: 0, scale: 0.6, x: 0, y: 0 }}
+                key={`${particle.left}-${index}`}
+                style={{
+                  backgroundColor: particle.color,
+                  borderRadius: particle.round ? "9999px" : "1px",
+                  bottom: `${particle.layer * 9 + 3}%`,
+                  boxShadow: particle.color === "#b7ff3c" ? "0 0 10px rgba(183, 255, 60, 0.95)" : "0 0 4px rgba(255, 255, 255, 0.2)",
+                  height: particle.size,
+                  left: `${particle.left}%`,
+                  width: particle.size
+                }}
+                transition={{ delay: particle.delay, duration: 0.52, ease: "easeOut" }}
               />
             ))
           : null}
