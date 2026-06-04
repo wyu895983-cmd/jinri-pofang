@@ -8,7 +8,7 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const siteUrl = getSiteUrl();
-const shareImage = `${siteUrl}/icons/app-icon-1024.png`;
+const shareImage = `${siteUrl}/share-card.png`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -26,8 +26,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: shareImage,
-        width: 1024,
-        height: 1024,
+        width: 1200,
+        height: 630,
         alt: "今日破防"
       }
     ],

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 
 const siteUrl = getSiteUrl();
-const shareImage = `${siteUrl}/icons/app-icon-1024.png`;
+const shareImage = `${siteUrl}/share-card.png`;
 
 type PostLayoutProps = {
   children: React.ReactNode;
@@ -28,8 +28,8 @@ export async function generateMetadata({ params }: PostLayoutProps): Promise<Met
       images: [
         {
           url: shareImage,
-          width: 1024,
-          height: 1024,
+          width: 1200,
+          height: 630,
           alt: "今日破防"
         }
       ],

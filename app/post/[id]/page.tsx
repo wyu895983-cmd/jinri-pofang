@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { CornerDownRight } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { LocalPostCard } from "@/components/local-post-card";
 import { RichContent } from "@/components/rich-content";
@@ -41,13 +42,15 @@ export default function PostDetailPage() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [pendingPostIds, setPendingPostIds] = useState<Set<string>>(new Set());
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(new Set());
-  const topComments = useMemo(() => comments.filter((comment) => !comment.parent_comment_id), [comments]);
+  const commentsById = useMemo(() => new Map(comments.map((comment) => [comment.id, comment])), [comments]);
+  const topComments = useMemo(() => comments.filter((comment) => !getParentCommentId(comment)), [comments]);
   const repliesByParent = useMemo(() => {
     const byId = new Map(comments.map((comment) => [comment.id, comment]));
     return comments.reduce<Record<string, LocalComment[]>>((acc, comment) => {
-      if (!comment.parent_comment_id) return acc;
-      const parent = byId.get(comment.parent_comment_id);
-      const parentId = parent?.parent_comment_id ?? comment.parent_comment_id;
+      const directParentId = getParentCommentId(comment);
+      if (!directParentId) return acc;
+      const parent = byId.get(directParentId);
+      const parentId = parent ? getParentCommentId(parent) ?? directParentId : directParentId;
       acc[parentId] = [...(acc[parentId] ?? []), comment].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
       return acc;
     }, {});
@@ -302,7 +305,10 @@ export default function PostDetailPage() {
                             </motion.span>
                           </motion.button>
                         </div>
-                        <p className="mb-1 text-label text-acid">回复 @{reply.parent_nickname || comment.nickname}</p>
+                        <div className="mb-1 flex items-center gap-1.5 text-label text-acid">
+                          <CornerDownRight className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">回复 @{getReplyToName(reply, commentsById, comment)}</span>
+                        </div>
                         <RichContent className="text-body text-zinc-200" content={reply.content} />
                         <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setReplyTarget(reply)} type="button">
                           回复
@@ -352,6 +358,16 @@ function showNetworkToast(setToast: (value: string) => void) {
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function getParentCommentId(comment: LocalComment) {
+  return comment.parent_comment_uuid ?? comment.parent_comment_id ?? null;
+}
+
+function getReplyToName(reply: LocalComment, commentsById: Map<string, LocalComment>, topLevelComment: LocalComment) {
+  const parentId = getParentCommentId(reply);
+  if (!parentId) return topLevelComment.nickname;
+  return commentsById.get(parentId)?.nickname || reply.parent_nickname || topLevelComment.nickname;
 }
 
 function PostDetailSkeleton() {

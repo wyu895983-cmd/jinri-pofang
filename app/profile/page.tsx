@@ -34,6 +34,8 @@ export default function ProfilePage() {
   const [avatar, setAvatar] = useState("");
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [notifications, setNotifications] = useState<InteractionNotification[]>([]);
+  const [likesExpanded, setLikesExpanded] = useState(false);
+  const [commentsExpanded, setCommentsExpanded] = useState(false);
 
   async function refresh(markRead = false) {
     const cached = getCurrentUser();
@@ -119,6 +121,8 @@ export default function ProfilePage() {
   const level = getLevelInfo(user.exp);
   const likeNotifications = notifications.filter((notification) => notification.type === "like");
   const commentNotifications = notifications.filter((notification) => notification.type === "comment");
+  const visibleLikeNotifications = likesExpanded ? likeNotifications : likeNotifications.slice(0, 2);
+  const visibleCommentNotifications = commentsExpanded ? commentNotifications : commentNotifications.slice(0, 2);
 
   function formatNotificationTime(value: string) {
     const date = new Date(value);
@@ -151,7 +155,7 @@ export default function ProfilePage() {
             <p className="mb-3 text-label text-acid">点赞了你的吐槽</p>
             <div className="space-y-3">
               {likeNotifications.length ? (
-                likeNotifications.map((notification) => (
+                visibleLikeNotifications.map((notification) => (
                   <Link className="block rounded-card border border-line bg-white/[0.035] p-3 transition hover:border-acid/35" href={`/post/${notification.postId}`} key={notification.id}>
                     <p className="text-meta text-muted">{formatNotificationTime(notification.createdAt)}</p>
                     <p className="mt-2 text-body text-zinc-100">有人点赞了你的吐槽</p>
@@ -162,13 +166,18 @@ export default function ProfilePage() {
                 <p className="rounded-card border border-line bg-white/[0.025] p-3 text-meta text-muted">暂时还没有点赞提醒。</p>
               )}
             </div>
+            {likeNotifications.length > 2 ? (
+              <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setLikesExpanded((value) => !value)} type="button">
+                {likesExpanded ? "收起" : "展开更多"}
+              </button>
+            ) : null}
           </div>
 
           <div>
             <p className="mb-3 text-label text-acid">评论了你的吐槽</p>
             <div className="space-y-3">
               {commentNotifications.length ? (
-                commentNotifications.map((notification) => (
+                visibleCommentNotifications.map((notification) => (
                   <Link className="block rounded-card border border-line bg-white/[0.035] p-3 transition hover:border-acid/35" href={notificationHref(notification)} key={notification.id}>
                     <p className="text-meta text-muted">{formatNotificationTime(notification.createdAt)}</p>
                     <p className="mt-2 text-body text-zinc-100">有人评论了你的吐槽</p>
@@ -180,6 +189,11 @@ export default function ProfilePage() {
                 <p className="rounded-card border border-line bg-white/[0.025] p-3 text-meta text-muted">暂时还没有评论提醒。</p>
               )}
             </div>
+            {commentNotifications.length > 2 ? (
+              <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setCommentsExpanded((value) => !value)} type="button">
+                {commentsExpanded ? "收起" : "展开更多"}
+              </button>
+            ) : null}
           </div>
         </div>
       </section>

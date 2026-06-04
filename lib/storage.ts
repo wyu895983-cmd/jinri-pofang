@@ -39,6 +39,7 @@ export type LocalPost = {
 export type LocalComment = {
   id: string;
   post_id: string;
+  parent_comment_uuid?: string | null;
   parent_comment_id?: string | null;
   parent_nickname?: string | null;
   user_id: string;
@@ -177,10 +178,12 @@ function toComment(row: any, likedBy: string[] = []): LocalComment {
   const isCurrentUserComment = current?.guest_user_id === row.user_id;
   const nickname = isCurrentUserComment && current ? current.nickname : row.nickname;
   const avatar = isCurrentUserComment && current ? current.avatar_url : row.avatar_url ?? DEFAULT_AVATARS[0];
+  const parentCommentId = row.parent_comment_uuid ?? row.parent_comment_id ?? null;
   return {
     id: row.id,
     post_id: row.post_id,
-    parent_comment_id: row.parent_comment_id ?? null,
+    parent_comment_uuid: parentCommentId,
+    parent_comment_id: parentCommentId,
     parent_nickname: row.parent_nickname ?? null,
     user_id: row.user_id,
     nickname,
@@ -688,6 +691,7 @@ export async function createComment(postId: string, content: string, parentComme
   const comment: LocalComment = {
     id: uuid(),
     post_id: postId,
+    parent_comment_uuid: parentComment?.id ?? null,
     parent_comment_id: parentComment?.id ?? null,
     parent_nickname: parentComment?.nickname ?? null,
     user_id: user.guest_user_id,
