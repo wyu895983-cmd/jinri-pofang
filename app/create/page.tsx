@@ -29,7 +29,8 @@ export default function CreatePage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
-    const text = String(new FormData(event.currentTarget).get("content") ?? "").trim();
+    const form = event.currentTarget;
+    const text = String(new FormData(form).get("content") ?? "").trim();
 
     if (!text) {
       setError("先写点什么再发射。");
@@ -39,7 +40,7 @@ export default function CreatePage() {
     try {
       setSubmitting(true);
       await createPost(text);
-      event.currentTarget.reset();
+      form?.reset();
       setDraft("");
       setError("");
       setSuccess("破防已发射 🚀");
