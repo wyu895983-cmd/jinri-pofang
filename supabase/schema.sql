@@ -12,9 +12,13 @@ create table if not exists public.profiles (
   login_streak integer not null default 0 check (login_streak >= 0),
   total_posts integer not null default 0 check (total_posts >= 0),
   total_likes integer not null default 0 check (total_likes >= 0),
+  language text not null default 'zh-CN' check (language in ('zh-CN', 'ja', 'ko', 'en')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.profiles
+  add column if not exists language text not null default 'zh-CN' check (language in ('zh-CN', 'ja', 'ko', 'en'));
 
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
@@ -279,6 +283,33 @@ begin
 
   if row_profile.id is null then
     raise exception '用户不存在';
+  end if;
+
+  return row_profile;
+end;
+$$;
+
+create or replace function public.update_profile_language(profile_uuid uuid, next_language text)
+returns public.profiles
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  row_profile public.profiles;
+begin
+  if next_language not in ('zh-CN', 'ja', 'ko', 'en') then
+    raise exception 'Unsupported language';
+  end if;
+
+  update public.profiles
+  set language = next_language,
+      updated_at = now()
+  where id = profile_uuid
+  returning * into row_profile;
+
+  if row_profile.id is null then
+    raise exception 'Profile not found';
   end if;
 
   return row_profile;
@@ -555,6 +586,7 @@ grant insert on public.feedbacks to anon, authenticated;
 grant update(read) on public.notifications to anon, authenticated;
 grant execute on function public.login_or_create_profile(text, text) to anon, authenticated;
 grant execute on function public.update_profile(uuid, text, text) to anon, authenticated;
+grant execute on function public.update_profile_language(uuid, text) to anon, authenticated;
 grant execute on function public.ensure_daily_profile(uuid) to anon, authenticated;
 grant execute on function public.create_post(uuid, text, text) to anon, authenticated;
 grant execute on function public.create_comment(uuid, uuid, text, text, uuid) to anon, authenticated;

@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import { LocalUser, updateCurrentUserProfile } from "@/lib/storage";
 
 export default function NicknameInput({ onSaved }: { onSaved?: (user: LocalUser | null) => void }) {
+  const { t } = useI18n();
   const [nickname, setNickname] = useState("");
   const [saved, setSaved] = useState(false);
 
@@ -33,15 +35,15 @@ export default function NicknameInput({ onSaved }: { onSaved?: (user: LocalUser 
             setNickname(event.target.value.slice(0, 12));
             setSaved(false);
           }}
-          placeholder="请输入昵称"
+          placeholder={t("nickname.placeholder")}
           type="text"
           value={nickname}
         />
         <button className="h-11 shrink-0 rounded-button bg-acid px-4 text-label font-bold text-ink transition active:scale-95" onClick={saveNickname} type="button">
-          保存
+          {t("common.save")}
         </button>
       </div>
-      {saved ? <p className="text-meta text-acid">昵称已保存</p> : null}
+      {saved ? <p className="text-meta text-acid">{t("nickname.saved")}</p> : null}
     </div>
   );
 }

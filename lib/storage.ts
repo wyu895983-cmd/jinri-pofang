@@ -17,6 +17,7 @@ export type LocalUser = {
   total_posts: number;
   total_likes: number;
   is_admin?: boolean;
+  language?: string | null;
 };
 
 export type FavoriteRecord = {
@@ -76,12 +77,13 @@ const COMMENTS_KEY = "jinri-pofang:comments";
 const FAVORITES_KEY = "jinri-pofang:favorites";
 const USER_NAME_KEY = "userName";
 const USER_AVATAR_KEY = "userAvatar";
+const LANGUAGE_KEY = "jinri-pofang:language";
 export const DEFAULT_AVATARS = ["/avatars/avatar1.webp", "/avatars/avatar2.webp", "/avatars/avatar3.webp", "/avatars/avatar4.webp"];
 const RANDOM_NICKNAMES = ["今日路过", "普通破防人", "地铁发呆员", "还能再撑会儿", "怨气待机中", "先笑一下"];
 const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
 const COMMENT_FEED_COLUMNS = "id,post_id,parent_comment_id,parent_nickname,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
 const LEGACY_COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
-const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date,is_admin";
+const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date,is_admin,language";
 const NOTIFICATION_COLUMNS = 'id,type,fromUserId,fromUserName,toUserId,postId,commentId,postText,commentText,createdAt,read';
 let cachedUser: LocalUser | null | undefined;
 
@@ -157,7 +159,8 @@ function toUser(row: any): LocalUser {
     energy: Number(row.energy ?? 20),
     total_posts: Number(row.total_posts ?? 0),
     total_likes: Number(row.total_likes ?? 0),
-    is_admin: Boolean(row.is_admin)
+    is_admin: Boolean(row.is_admin),
+    language: row.language ?? null
   };
 }
 
@@ -313,6 +316,44 @@ export async function updateCurrentUserProfile(input: { nickname?: string; avata
   }
 
   return next;
+}
+
+export async function syncLanguagePreference(language: string) {
+  if (typeof window !== "undefined") window.localStorage.setItem(LANGUAGE_KEY, language);
+
+  const user = getCurrentUser();
+  if (user) saveUser({ ...user, language });
+  if (!user || !isSupabaseBrowserConfigured()) return;
+
+  try {
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.rpc("update_profile_language", {
+      next_language: language,
+      profile_uuid: user.guest_user_id
+    });
+    if (error) throw error;
+  } catch {
+    // Some existing databases may not have the optional language column yet.
+  }
+}
+
+export async function fetchRemoteLanguagePreference() {
+  const user = getCurrentUser();
+  if (!user) return null;
+  if (!isSupabaseBrowserConfigured()) return normalizeStoredLanguage(user.language);
+
+  try {
+    const supabase = createSupabaseBrowserClient();
+    const { data, error } = await supabase.from("profiles").select("language").eq("id", user.guest_user_id).single();
+    if (error) throw error;
+    return normalizeStoredLanguage(data?.language ?? user.language);
+  } catch {
+    return normalizeStoredLanguage(user.language);
+  }
+}
+
+function normalizeStoredLanguage(language: unknown) {
+  return typeof language === "string" && ["zh-CN", "ja", "ko", "en"].includes(language) ? language : null;
 }
 
 export function getFavorites() {
@@ -501,6 +542,19 @@ export function signOutLocalUser() {
   cachedUser = null;
   window.localStorage.removeItem(USER_KEY);
   window.dispatchEvent(new CustomEvent("pofang:storage-change"));
+}
+
+export async function signOutCurrentUser() {
+  if (isSupabaseBrowserConfigured()) {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Local sign-out should still complete if Supabase Auth is unavailable.
+    }
+  }
+
+  signOutLocalUser();
 }
 
 export async function getPosts() {

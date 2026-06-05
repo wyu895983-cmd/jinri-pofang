@@ -2,8 +2,10 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export function EnergyFeedback() {
+  const { t } = useI18n();
   const [active, setActive] = useState(false);
   const [energy, setEnergy] = useState(16);
 
@@ -24,7 +26,7 @@ export function EnergyFeedback() {
         animate={active ? { scale: [1, 1.18, 1], color: ["#b8ff3d", "#ffffff", "#b8ff3d"] } : { scale: 1 }}
         transition={{ duration: 0.46 }}
       >
-        怨气 {energy}
+        {t("energy.label", { count: energy })}
       </motion.div>
       <AnimatePresence>
         {active

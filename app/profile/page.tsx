@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Bookmark, Edit3 } from "lucide-react";
+import { Bookmark, Edit3, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AvatarPicker } from "@/components/avatar-picker";
 import { BrandMark } from "@/components/brand-mark";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import NicknameInput from "@/components/nickname-input";
 import { RichContent } from "@/components/rich-content";
 import { StatsCard } from "@/components/stats-card";
+import { useI18n } from "@/lib/i18n";
 import { getLevelInfo } from "@/lib/levels";
 import {
   getFavorites,
@@ -21,12 +23,13 @@ import {
   getCurrentUser,
   markNotificationsRead,
   refreshCurrentUser,
-  signOutLocalUser,
+  signOutCurrentUser,
   updateCurrentUserProfile
 } from "@/lib/storage";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [user, setUser] = useState<LocalUser | null>(null);
   const [posts, setPosts] = useState<LocalPost[]>([]);
   const [editing, setEditing] = useState(false);
@@ -36,6 +39,8 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState<InteractionNotification[]>([]);
   const [likesExpanded, setLikesExpanded] = useState(false);
   const [commentsExpanded, setCommentsExpanded] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   async function refresh(markRead = false) {
     const cached = getCurrentUser();
@@ -105,14 +110,21 @@ export default function ProfilePage() {
     if (next) setUser(next);
   }
 
+  async function confirmLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    await signOutCurrentUser();
+    router.push("/login");
+  }
+
   if (!user) {
     return (
       <div className="glass rounded-card p-6 text-center">
         <BrandMark className="mx-auto h-20 w-20" />
-        <h1 className="mt-5 text-h1 text-white">还没有 PoPo 档案</h1>
-        <p className="mt-3 text-body text-muted">取个名字才能留下你的破防痕迹。</p>
+        <h1 className="mt-5 text-h1 text-white">{t("profile.noProfileTitle")}</h1>
+        <p className="mt-3 text-body text-muted">{t("profile.noProfileBody")}</p>
         <Link className="app-button mt-6 inline-flex w-full items-center justify-center bg-acid text-ink" href="/login">
-          去取名字
+          {t("profile.goLogin")}
         </Link>
       </div>
     );
@@ -127,7 +139,7 @@ export default function ProfilePage() {
   function formatNotificationTime(value: string) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
-    return date.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleString(undefined, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
   }
 
   function preview(text: string) {
@@ -146,52 +158,52 @@ export default function ProfilePage() {
     <div className="space-y-5">
       <section className="glass rounded-card p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-h2 text-white">收到的互动</h2>
+          <h2 className="text-h2 text-white">{t("profile.notifications")}</h2>
           <span className="rounded-full border border-acid/25 bg-acid/10 px-3 py-1 text-meta text-acid">{notifications.length}</span>
         </div>
 
         <div className="space-y-5">
           <div>
-            <p className="mb-3 text-label text-acid">点赞了你的吐槽</p>
+            <p className="mb-3 text-label text-acid">{t("profile.likesTitle")}</p>
             <div className="space-y-3">
               {likeNotifications.length ? (
                 visibleLikeNotifications.map((notification) => (
                   <Link className="block rounded-card border border-line bg-white/[0.035] p-3 transition hover:border-acid/35" href={`/post/${notification.postId}`} key={notification.id}>
                     <p className="text-meta text-muted">{formatNotificationTime(notification.createdAt)}</p>
-                    <p className="mt-2 text-body text-zinc-100">有人点赞了你的吐槽</p>
+                    <p className="mt-2 text-body text-zinc-100">{t("profile.someoneLiked")}</p>
                     <p className="mt-1 line-clamp-2 text-meta text-muted">{preview(notification.postText)}</p>
                   </Link>
                 ))
               ) : (
-                <p className="rounded-card border border-line bg-white/[0.025] p-3 text-meta text-muted">暂时还没有点赞提醒。</p>
+                <p className="rounded-card border border-line bg-white/[0.025] p-3 text-meta text-muted">{t("profile.noLikes")}</p>
               )}
             </div>
             {likeNotifications.length > 2 ? (
               <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setLikesExpanded((value) => !value)} type="button">
-                {likesExpanded ? "收起" : "展开更多"}
+                {likesExpanded ? t("profile.collapse") : t("profile.expand")}
               </button>
             ) : null}
           </div>
 
           <div>
-            <p className="mb-3 text-label text-acid">评论了你的吐槽</p>
+            <p className="mb-3 text-label text-acid">{t("profile.commentsTitle")}</p>
             <div className="space-y-3">
               {commentNotifications.length ? (
                 visibleCommentNotifications.map((notification) => (
                   <Link className="block rounded-card border border-line bg-white/[0.035] p-3 transition hover:border-acid/35" href={notificationHref(notification)} key={notification.id}>
                     <p className="text-meta text-muted">{formatNotificationTime(notification.createdAt)}</p>
-                    <p className="mt-2 text-body text-zinc-100">有人评论了你的吐槽</p>
+                    <p className="mt-2 text-body text-zinc-100">{t("profile.someoneCommented")}</p>
                     <p className="mt-1 line-clamp-2 text-meta text-muted">{preview(notification.postText)}</p>
                     {notification.commentText ? <p className="mt-2 rounded-button bg-acid/10 px-3 py-2 text-meta text-acid">{preview(notification.commentText)}</p> : null}
                   </Link>
                 ))
               ) : (
-                <p className="rounded-card border border-line bg-white/[0.025] p-3 text-meta text-muted">暂时还没有评论提醒。</p>
+                <p className="rounded-card border border-line bg-white/[0.025] p-3 text-meta text-muted">{t("profile.noComments")}</p>
               )}
             </div>
             {commentNotifications.length > 2 ? (
               <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setCommentsExpanded((value) => !value)} type="button">
-                {commentsExpanded ? "收起" : "展开更多"}
+                {commentsExpanded ? t("profile.collapse") : t("profile.expand")}
               </button>
             ) : null}
           </div>
@@ -202,7 +214,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-4">
           <img alt="" className="h-16 w-16 shrink-0 rounded-2xl border border-acid/30 bg-acid/10 object-contain p-2 shadow-acid" src={user.avatar_url} />
           <div className="min-w-0 flex-1">
-            <p className="text-label text-acid">我的 PoPo 档案</p>
+            <p className="text-label text-acid">{t("profile.file")}</p>
             <h1 className="mt-1 truncate text-h1 text-white">{user.nickname}</h1>
             <p className="mt-1 text-meta text-muted">
               Lv{level.level} · {level.title}
@@ -218,7 +230,7 @@ export default function ProfilePage() {
             <NicknameInput onSaved={handleNicknameSaved} />
             <AvatarPicker selected={avatar} onSelect={selectAvatar} />
             <button className="app-button w-full bg-acid text-ink" onClick={saveAvatar} type="button">
-              保存头像
+              {t("profile.saveAvatar")}
             </button>
           </div>
         ) : null}
@@ -226,7 +238,7 @@ export default function ProfilePage() {
         <div className="mt-5">
           <div className="mb-2 flex justify-between text-meta text-muted">
             <span>{user.exp} EXP</span>
-            <span>{level.expToNext > 0 ? `还差 ${level.expToNext} EXP 升 Lv${level.nextLevel}` : "已到最高等级"}</span>
+            <span>{level.expToNext > 0 ? t("profile.expToNext", { count: level.expToNext, level: level.nextLevel }) : t("profile.maxLevel")}</span>
           </div>
           <div className="h-3 overflow-hidden rounded-full bg-white/10">
             <div className="h-full rounded-full bg-gradient-to-r from-purple via-fuchsia-500 to-acid" style={{ width: `${level.progress}%` }} />
@@ -235,32 +247,42 @@ export default function ProfilePage() {
       </section>
 
       <div className="grid grid-cols-2 gap-3">
-        <StatsCard label="总发帖" value={user.total_posts} />
-        <StatsCard label="总获赞" value={user.total_likes} />
-        <StatsCard label="收藏" value={favoriteCount} />
-        <StatsCard label="连续登录" value={`${user.login_streak} 天`} />
+        <StatsCard label={t("profile.totalPosts")} value={user.total_posts} />
+        <StatsCard label={t("profile.totalLikes")} value={user.total_likes} />
+        <StatsCard label={t("profile.favorites")} value={favoriteCount} />
+        <StatsCard label={t("profile.streak")} value={`${user.login_streak} ${t("profile.days")}`} />
       </div>
+
+      <section className="glass rounded-card p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-h2 text-white">{t("profile.settings")}</h2>
+            <p className="mt-1 text-meta text-muted">{t("language.label")}</p>
+          </div>
+          <LanguageSwitcher />
+        </div>
+      </section>
 
       <div className="grid grid-cols-2 gap-3">
         <Link className="app-button flex items-center justify-center gap-2 border border-acid/35 bg-acid/10 text-acid" href="/favorites">
           <Bookmark className="h-4 w-4" />
-          我的收藏
+          {t("profile.myFavorites")}
         </Link>
         <Link className="app-button flex items-center justify-center border border-acid/35 bg-acid/10 text-acid" href="/feedback">
-          意见反馈
+          {t("profile.feedback")}
         </Link>
       </div>
 
       <section className="glass rounded-card p-5">
-        <h2 className="mb-4 text-h2 text-white">徽章墙</h2>
+        <h2 className="mb-4 text-h2 text-white">{t("profile.badges")}</h2>
         <div className="grid grid-cols-3 gap-3">
           {[
-            ["💚", "初次破防", user.total_posts > 0],
-            ["🔥", "热度体质", user.total_likes >= 5],
-            ["🌙", "连续登录", user.login_streak >= 2],
-            ["✍️", "吐槽选手", posts.length >= 3],
-            ["⚡", "怨气充能", user.exp >= 20],
-            ["🏆", "PoPo 成长", user.exp >= 100]
+            ["💚", t("profile.badgeFirst"), user.total_posts > 0],
+            ["🔥", t("profile.badgeHeat"), user.total_likes >= 5],
+            ["🌙", t("profile.badgeStreak"), user.login_streak >= 2],
+            ["✍️", t("profile.badgeTalker"), posts.length >= 3],
+            ["⚡", t("profile.badgeEnergy"), user.exp >= 20],
+            ["🏆", t("profile.badgeGrowth"), user.exp >= 100]
           ].map(([icon, label, active]) => (
             <motion.div
               className={`rounded-card border p-3 text-center ${active ? "border-acid/40 bg-acid/10 shadow-acid" : "border-line bg-white/[0.035] opacity-55"}`}
@@ -277,34 +299,64 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <button
-        className="app-button w-full border border-line text-muted hover:bg-white/5 hover:text-white"
-        onClick={() => {
-          signOutLocalUser();
-          router.push("/login");
-        }}
-        type="button"
-      >
-        换个昵称
-      </button>
-
       <section>
-        <h2 className="mb-4 text-h2 text-white">历史吐槽</h2>
+        <h2 className="mb-4 text-h2 text-white">{t("profile.history")}</h2>
         <div className="space-y-4">
           {posts.length ? (
             posts.map((post) => (
               <Link className="glass block rounded-card p-5" href={`/post/${post.id}`} key={post.id}>
                 <RichContent className="whitespace-pre-wrap text-body text-zinc-100" content={post.content} />
                 <p className="mt-3 text-meta text-muted">
-                  {post.reaction_count} 赞 · {post.comment_count} 评论
+                  {post.reaction_count} {t("common.like")} · {t("post.comments", { count: post.comment_count })}
                 </p>
               </Link>
             ))
           ) : (
-            <div className="glass rounded-card p-8 text-center text-meta text-muted">你还没有发布过吐槽。</div>
+            <div className="glass rounded-card p-8 text-center text-meta text-muted">{t("profile.emptyHistory")}</div>
           )}
         </div>
       </section>
+
+      <button
+        className="app-button flex w-full items-center justify-center gap-2 border border-red-400/35 bg-red-500/10 text-red-200 hover:bg-red-500/15 hover:text-red-100"
+        onClick={() => setLogoutOpen(true)}
+        type="button"
+      >
+        <LogOut className="h-4 w-4" />
+        {t("profile.logout")}
+      </button>
+
+      {logoutOpen ? (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-ink/75 p-5 backdrop-blur-md">
+          <motion.div
+            className="w-full max-w-sm rounded-card border border-red-400/25 bg-panel p-5 shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            <h2 className="text-h2 text-white">{t("profile.logoutTitle")}</h2>
+            <p className="mt-3 text-body text-muted">{t("profile.logoutBody")}</p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                className="app-button border border-line text-muted hover:bg-white/5 hover:text-white"
+                disabled={loggingOut}
+                onClick={() => setLogoutOpen(false)}
+                type="button"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                className="app-button bg-red-400 text-ink hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={loggingOut}
+                onClick={confirmLogout}
+                type="button"
+              >
+                {loggingOut ? t("profile.loggingOut") : t("profile.logoutConfirm")}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      ) : null}
     </div>
   );
 }

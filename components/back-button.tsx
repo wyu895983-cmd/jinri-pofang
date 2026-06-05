@@ -3,10 +3,12 @@
 import { ChevronLeft } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export function BackButton() {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
   const gestureRef = useRef<{ x: number; y: number; id: number } | null>(null);
 
   const goBack = useCallback(() => {
@@ -81,7 +83,7 @@ export function BackButton() {
 
   return (
     <button
-      aria-label="返回"
+      aria-label={t("common.back")}
       className="fixed left-[max(10px,calc((100vw-430px)/2+10px))] top-[calc(env(safe-area-inset-top)+72px)] z-50 grid h-9 w-9 place-items-center rounded-2xl border border-acid/35 bg-ink/88 text-acid shadow-acid backdrop-blur-xl transition active:scale-95 hover:bg-acid/10"
       onClick={goBack}
       type="button"

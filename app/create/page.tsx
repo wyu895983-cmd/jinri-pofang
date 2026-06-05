@@ -5,12 +5,13 @@ import { motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
 import { StickerPicker } from "@/components/sticker-picker";
 import { Toast } from "@/components/toast";
+import { useI18n } from "@/lib/i18n";
 import { createPost, getCurrentUser, LocalUser } from "@/lib/storage";
-
-const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
 
 export default function CreatePage() {
   const router = useRouter();
+  const { t } = useI18n();
+  const loginPrompt = `/login?message=${encodeURIComponent(t("auth.needName"))}`;
   const [user, setUser] = useState<LocalUser | null>(null);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState("");
@@ -33,7 +34,7 @@ export default function CreatePage() {
     const text = String(new FormData(form).get("content") ?? "").trim();
 
     if (!text) {
-      setError("先写点什么再发射。");
+      setError(t("create.empty"));
       return;
     }
 
@@ -43,10 +44,10 @@ export default function CreatePage() {
       form?.reset();
       setDraft("");
       setError("");
-      setSuccess("破防已发射 🚀");
+      setSuccess(t("create.success"));
       window.setTimeout(() => router.push("/"), 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "发布失败了。");
+      setError(err instanceof Error ? err.message : t("create.failed"));
       setSubmitting(false);
     }
   }
@@ -54,15 +55,15 @@ export default function CreatePage() {
   return (
     <div>
       <div className="mb-6">
-        <p className="mb-2 text-label text-acid">发布吐槽</p>
-        <h1 className="text-h1 text-white">把这口气，优雅地吐出去</h1>
+        <p className="mb-2 text-label text-acid">{t("create.eyebrow")}</p>
+        <h1 className="text-h1 text-white">{t("create.title")}</h1>
       </div>
 
       <form className="glass rounded-card p-5" onSubmit={submit}>
         {user ? (
           <div className="mb-4 flex flex-wrap gap-3 text-meta">
             <span className="rounded-button bg-white/[0.06] px-3 py-2 text-zinc-200">{user.nickname}</span>
-            <span className="rounded-button bg-acid/10 px-3 py-2 font-medium text-acid">今日怨气值 {user.energy}/20</span>
+            <span className="rounded-button bg-acid/10 px-3 py-2 font-medium text-acid">{t("create.energy", { count: user.energy })}</span>
           </div>
         ) : null}
 
@@ -75,15 +76,15 @@ export default function CreatePage() {
           maxLength={100}
           name="content"
           onInput={(event) => setDraft(event.currentTarget.value)}
-          placeholder="100 字以内，精准破防。比如：老板说这个需求很简单的时候，我就知道今晚不简单。"
+          placeholder={t("create.placeholder")}
           required
           rows={5}
         />
         <StickerPicker />
         <div className="mt-5 flex items-center justify-between gap-4">
-          <p className="text-meta text-muted">发布消耗 1 点怨气值，获得 2 EXP。</p>
+          <p className="text-meta text-muted">{t("create.cost")}</p>
           <button className="app-button bg-acid text-ink hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60" disabled={submitting}>
-            {submitting ? "发送中..." : "发射"}
+            {submitting ? t("create.submitting") : t("create.submit")}
           </button>
         </div>
       </form>
@@ -93,13 +94,14 @@ export default function CreatePage() {
 }
 
 function RageMeter({ content }: { content: string }) {
+  const { t } = useI18n();
   const score = Math.min(100, Math.round(content.trim().length * 1.8 + punctuationScore(content)));
   const level = score >= 90 ? "SS" : score >= 74 ? "S" : score >= 55 ? "A" : score >= 30 ? "B" : "C";
 
   return (
     <div className="mb-4 rounded-card border border-line bg-white/[0.035] p-4">
       <div className="mb-2 flex items-center justify-between text-meta">
-        <span className="text-muted">破防指数</span>
+        <span className="text-muted">{t("create.rageIndex")}</span>
         <motion.span
           className="text-label text-acid drop-shadow-[0_0_14px_rgba(182,255,59,0.3)]"
           key={`${score}-${level}`}

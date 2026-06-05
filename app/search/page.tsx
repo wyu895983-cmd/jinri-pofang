@@ -4,9 +4,11 @@ import { FormEvent, useState } from "react";
 import { Search } from "lucide-react";
 import { FeedSkeleton } from "@/components/skeleton";
 import { LocalPostCard } from "@/components/local-post-card";
+import { useI18n } from "@/lib/i18n";
 import { getCurrentUser, isFavorite, likePost, LocalPost, searchCommunity, toggleFavorite } from "@/lib/storage";
 
 export default function SearchPage() {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,14 +40,14 @@ export default function SearchPage() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="mb-2 text-label text-acid">搜索</p>
-        <h1 className="text-h1 text-white">找一句熟悉的破防</h1>
+        <p className="mb-2 text-label text-acid">{t("search.eyebrow")}</p>
+        <h1 className="text-h1 text-white">{t("search.title")}</h1>
       </div>
       <form className="glass flex gap-2 rounded-card p-3" onSubmit={submit}>
         <input
           className="min-w-0 flex-1 bg-transparent px-2 text-body text-white outline-none placeholder:text-zinc-600"
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="搜索帖子内容或昵称"
+          placeholder={t("search.placeholder")}
           value={query}
         />
         <button className="app-button bg-acid px-4 text-ink" type="submit">
@@ -56,7 +58,7 @@ export default function SearchPage() {
       {loading ? (
         <FeedSkeleton />
       ) : !searched ? (
-        <div className="glass rounded-card p-8 text-center text-meta text-muted">输入关键词，看看谁和你一起破防。</div>
+        <div className="glass rounded-card p-8 text-center text-meta text-muted">{t("search.initial")}</div>
       ) : results.length ? (
         <div className="space-y-4">
           {results.map((post, index) => (
@@ -74,8 +76,8 @@ export default function SearchPage() {
         </div>
       ) : (
         <div className="glass rounded-card p-8 text-center">
-          <p className="text-h2 text-white">没有搜到</p>
-          <p className="mt-3 text-body text-muted">换个关键词试试，也许破防藏在另一句话里。</p>
+          <p className="text-h2 text-white">{t("search.emptyTitle")}</p>
+          <p className="mt-3 text-body text-muted">{t("search.emptyBody")}</p>
         </div>
       )}
     </div>

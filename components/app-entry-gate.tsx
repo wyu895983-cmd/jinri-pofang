@@ -4,12 +4,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useI18n } from "@/lib/i18n";
 
 const WELCOME_KEY = "jinri-pofang:welcome-complete";
 
 export function AppEntryGate() {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
   const [showSplash, setShowSplash] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
 
@@ -62,12 +65,15 @@ export function AppEntryGate() {
           exit={{ opacity: 0 }}
         >
           <div className="absolute inset-0 onboarding-crack opacity-80" />
+          <div className="absolute right-5 top-5 z-10">
+            <LanguageSwitcher />
+          </div>
           <section className="glass relative w-full max-w-[390px] rounded-card p-6 text-center">
             <BrandMark className="mx-auto h-24 w-24 drop-shadow-[0_0_32px_rgba(182,255,59,0.28)]" />
-            <h1 className="mt-6 text-h1 text-white">欢迎来到今日破防</h1>
-            <p className="mt-4 text-body text-muted">取个名字，今天先破防一下。像小程序一样，点开就能用。</p>
+            <h1 className="mt-6 text-h1 text-white">{t("auth.title")}</h1>
+            <p className="mt-4 text-body text-muted">{t("welcome.body")}</p>
             <button className="app-button mt-8 w-full bg-acid text-ink hover:brightness-110" onClick={start} type="button">
-              开始破防
+              {t("auth.submit")}
             </button>
           </section>
         </motion.div>
@@ -77,6 +83,7 @@ export function AppEntryGate() {
 }
 
 function SplashScreen() {
+  const { t } = useI18n();
   return (
     <motion.div
       className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-ink"
@@ -95,8 +102,8 @@ function SplashScreen() {
         <motion.div animate={{ scale: [1, 1.035, 1] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}>
           <BrandMark className="h-24 w-24 drop-shadow-[0_0_34px_rgba(182,255,59,0.34)]" />
         </motion.div>
-        <h1 className="mt-5 text-h1 text-white">今日破防</h1>
-        <p className="mt-3 text-body text-acid">今天也稳定破防中...</p>
+        <h1 className="mt-5 text-h1 text-white">{t("common.appName")}</h1>
+        <p className="mt-3 text-body text-acid">{t("splash.subtitle")}</p>
       </motion.div>
     </motion.div>
   );

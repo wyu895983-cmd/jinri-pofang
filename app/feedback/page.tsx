@@ -2,18 +2,20 @@
 
 import { motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import { getCurrentUser } from "@/lib/storage";
 import { submitFeedback, type FeedbackType } from "@/lib/feedback";
 import { isSupabaseBrowserConfigured } from "@/lib/supabase/client";
 
 const typeOptions: Array<{ label: string; value: FeedbackType }> = [
-  { label: "问题反馈", value: "bug" },
-  { label: "功能建议", value: "idea" },
-  { label: "内容建议", value: "content" },
-  { label: "其他", value: "other" }
+  { label: "feedback.type.bug", value: "bug" },
+  { label: "feedback.type.idea", value: "idea" },
+  { label: "feedback.type.content", value: "content" },
+  { label: "feedback.type.other", value: "other" }
 ];
 
 export default function FeedbackPage() {
+  const { t } = useI18n();
   const [nickname, setNickname] = useState("匿名路过");
   const [type, setType] = useState<FeedbackType>("bug");
   const [content, setContent] = useState("");
@@ -31,7 +33,7 @@ export default function FeedbackPage() {
     setMessage("");
 
     if (!content.trim()) {
-      setMessage("先写一点反馈内容。");
+      setMessage(t("feedback.empty"));
       return;
     }
 
@@ -40,9 +42,9 @@ export default function FeedbackPage() {
       await submitFeedback({ nickname, type, content, contact });
       setContent("");
       setContact("");
-      setMessage("收到，PoPo 已经把反馈存进小本本。");
+      setMessage(t("feedback.success"));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "提交失败，请稍后再试。");
+      setMessage(error instanceof Error ? error.message : t("feedback.failed"));
     } finally {
       setSubmitting(false);
     }
@@ -51,20 +53,20 @@ export default function FeedbackPage() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="mb-2 text-label text-acid">意见反馈</p>
-        <h1 className="text-h1 text-white">哪里不好破，直接告诉 PoPo</h1>
-        <p className="mt-3 text-body text-muted">当前只把反馈写入 Supabase，不改发帖、评论和点赞的数据模式。</p>
+        <p className="mb-2 text-label text-acid">{t("feedback.eyebrow")}</p>
+        <h1 className="text-h1 text-white">{t("feedback.title")}</h1>
+        <p className="mt-3 text-body text-muted">{t("feedback.subtitle")}</p>
       </div>
 
       {!configured ? (
         <div className="rounded-card border border-acid/30 bg-acid/10 p-4 text-meta text-acid">
-          Supabase 还没配置真实 Project URL 和 Publishable Key。配置后重启 dev server 再提交。
+          {t("feedback.notConfigured")}
         </div>
       ) : null}
 
       <form className="glass rounded-card p-5" onSubmit={submit}>
         <label className="block">
-          <span className="text-label text-muted">昵称</span>
+          <span className="text-label text-muted">{t("feedback.nickname")}</span>
           <input
             className="mt-2 h-11 w-full rounded-button border border-line bg-ink/70 px-4 text-body text-white outline-none ring-acid/20 placeholder:text-zinc-600 focus:border-acid focus:ring-4"
             maxLength={12}
@@ -74,7 +76,7 @@ export default function FeedbackPage() {
         </label>
 
         <div className="mt-5">
-          <p className="text-label text-muted">类型</p>
+          <p className="text-label text-muted">{t("feedback.type")}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {typeOptions.map((option) => (
               <button
@@ -85,31 +87,31 @@ export default function FeedbackPage() {
                 onClick={() => setType(option.value)}
                 type="button"
               >
-                {option.label}
+                {t(option.label)}
               </button>
             ))}
           </div>
         </div>
 
         <label className="mt-5 block">
-          <span className="text-label text-muted">反馈内容</span>
+          <span className="text-label text-muted">{t("feedback.content")}</span>
           <textarea
             className="mt-2 w-full resize-none rounded-card border border-line bg-ink/70 p-4 text-body text-white outline-none ring-acid/20 placeholder:text-zinc-600 focus:border-acid focus:ring-4"
             maxLength={300}
             onChange={(event) => setContent(event.target.value)}
-            placeholder="哪里卡住了？哪里不好笑？哪里还想加一点？"
+            placeholder={t("feedback.placeholder")}
             rows={5}
             value={content}
           />
         </label>
 
         <label className="mt-5 block">
-          <span className="text-label text-muted">联系方式</span>
+          <span className="text-label text-muted">{t("feedback.contact")}</span>
           <input
             className="mt-2 h-11 w-full rounded-button border border-line bg-ink/70 px-4 text-body text-white outline-none ring-acid/20 placeholder:text-zinc-600 focus:border-acid focus:ring-4"
             maxLength={80}
             onChange={(event) => setContact(event.target.value)}
-            placeholder="可选，方便回访"
+            placeholder={t("feedback.contactPlaceholder")}
             value={contact}
           />
         </label>
@@ -121,7 +123,7 @@ export default function FeedbackPage() {
           disabled={submitting}
           whileTap={{ scale: 0.96 }}
         >
-          {submitting ? "提交中..." : "提交反馈"}
+          {submitting ? t("feedback.submitting") : t("feedback.submit")}
         </motion.button>
       </form>
     </div>

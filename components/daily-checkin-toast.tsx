@@ -2,8 +2,10 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export function DailyCheckinToast() {
+  const { t } = useI18n();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -26,9 +28,9 @@ export function DailyCheckinToast() {
           exit={{ opacity: 0, y: -20, scale: 0.98 }}
           transition={{ duration: 0.34, ease: "easeOut" }}
         >
-          <p className="text-label text-acid">今日签到成功</p>
+          <p className="text-label text-acid">{t("dailyCheckin.title")}</p>
           <p className="mt-2 text-h2 text-white">+5 EXP</p>
-          <p className="mt-2 text-meta text-muted">连续登录 7 天可解锁：🔥 怨气连载家</p>
+          <p className="mt-2 text-meta text-muted">{t("dailyCheckin.body")}</p>
         </motion.div>
       ) : null}
     </AnimatePresence>

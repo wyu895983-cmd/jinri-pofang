@@ -4,6 +4,7 @@ import { AppEntryGate } from "@/components/app-entry-gate";
 import { BackButton } from "@/components/back-button";
 import { Nav } from "@/components/nav";
 import { PopoAssistant } from "@/components/popo-assistant";
+import { I18nProvider } from "@/lib/i18n";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -63,11 +64,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN">
       <body className={`${inter.variable} font-sans`}>
-        <AppEntryGate />
-        <Nav />
-        <BackButton />
-        <main className="mx-auto min-h-screen w-full max-w-[430px] px-4 pb-24 pt-5">{children}</main>
-        <PopoAssistant />
+        <I18nProvider>
+          <AppEntryGate />
+          <Nav />
+          <BackButton />
+          <main className="mx-auto min-h-screen w-full max-w-[430px] px-4 pb-24 pt-5">{children}</main>
+          <PopoAssistant />
+        </I18nProvider>
       </body>
     </html>
   );

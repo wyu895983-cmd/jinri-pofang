@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { FeedSkeleton } from "@/components/skeleton";
 import { LocalPostCard } from "@/components/local-post-card";
 import { Toast } from "@/components/toast";
+import { useI18n } from "@/lib/i18n";
 import { getCurrentUser, getFavoritePosts, getFavorites, likePost, LocalPost, toggleFavorite } from "@/lib/storage";
 
-const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
-
 export default function FavoritesPage() {
+  const { t } = useI18n();
+  const loginPrompt = `/login?message=${encodeURIComponent(t("auth.needName"))}`;
   const [posts, setPosts] = useState<LocalPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
@@ -36,7 +37,7 @@ export default function FavoritesPage() {
       await likePost(postId, reaction);
     } catch {
       setPosts(before);
-      showToast(setToast, "点赞失败，稍后再试");
+      showToast(setToast, t("favorites.likeFailed"));
     }
   }
 
@@ -48,9 +49,9 @@ export default function FavoritesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="mb-2 text-label text-acid">我的收藏</p>
-        <h1 className="text-h1 text-white">那些舍不得划走的破防</h1>
-        <p className="mt-3 text-body text-muted">按收藏时间倒序排列。</p>
+        <p className="mb-2 text-label text-acid">{t("favorites.eyebrow")}</p>
+        <h1 className="text-h1 text-white">{t("favorites.title")}</h1>
+        <p className="mt-3 text-body text-muted">{t("favorites.subtitle")}</p>
       </div>
 
       {loading ? (
@@ -72,8 +73,8 @@ export default function FavoritesPage() {
         </div>
       ) : (
         <div className="glass rounded-card p-8 text-center">
-          <p className="text-h2 text-white">还没有收藏</p>
-          <p className="mt-3 text-body text-muted">看到戳你的吐槽，点右上角收藏就会出现在这里。</p>
+          <p className="text-h2 text-white">{t("favorites.emptyTitle")}</p>
+          <p className="mt-3 text-body text-muted">{t("favorites.emptyBody")}</p>
         </div>
       )}
 

@@ -2,8 +2,10 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export function LevelUpModal() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export function LevelUpModal() {
               </motion.span>
             ))}
             <p className="text-4xl">🎉</p>
-            <p className="mt-3 text-h2 text-acid">升级成功</p>
+            <p className="mt-3 text-h2 text-acid">{t("levelUp.title")}</p>
             <motion.p
               className="mt-2 text-[56px] font-bold leading-none text-white"
               initial={{ scale: 0.75 }}
@@ -55,8 +57,8 @@ export function LevelUpModal() {
             >
               Lv8
             </motion.p>
-            <p className="mt-3 text-h2 text-white">怨气工程师</p>
-            <p className="mt-3 text-meta text-muted">获得新的身份！点击关闭。</p>
+            <p className="mt-3 text-h2 text-white">{t("levelUp.role")}</p>
+            <p className="mt-3 text-meta text-muted">{t("levelUp.body")}</p>
           </motion.div>
         </motion.div>
       ) : null}

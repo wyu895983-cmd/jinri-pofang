@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bookmark, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { RichContent } from "@/components/rich-content";
+import { useI18n } from "@/lib/i18n";
 import type { LocalPost } from "@/lib/storage";
 
 type Emotion = {
@@ -15,10 +16,10 @@ type Emotion = {
 };
 
 const emotions: Emotion[] = [
-  { emoji: "😂", label: "笑死", value: "laugh", message: "笑出声了，PoPo 已经替你鼓掌。" },
-  { emoji: "😭", label: "共鸣", value: "same", message: "这份委屈，大家都懂。" },
-  { emoji: "💀", label: "破防", value: "broken", message: "这条怨气我替你记下了。" },
-  { emoji: "🔥", label: "神吐槽", value: "fire", message: "这句可以进今日神吐槽。" }
+  { emoji: "😂", label: "emotions.laugh", value: "laugh", message: "emotions.laughMessage" },
+  { emoji: "😭", label: "emotions.same", value: "same", message: "emotions.sameMessage" },
+  { emoji: "💀", label: "emotions.broken", value: "broken", message: "emotions.brokenMessage" },
+  { emoji: "🔥", label: "emotions.fire", value: "fire", message: "emotions.fireMessage" }
 ];
 
 export function LocalPostCard({
@@ -44,6 +45,7 @@ export function LocalPostCard({
   disabled?: boolean;
   href?: string;
 }) {
+  const { t } = useI18n();
   const heatClass = getHeatClass(post.reaction_count);
   const [activeEmotion, setActiveEmotion] = useState<Emotion["value"] | null>(null);
 
@@ -69,7 +71,7 @@ export function LocalPostCard({
           <img alt="" className="h-11 w-11 shrink-0 rounded-2xl border border-acid/25 bg-acid/10 object-contain p-1" src={post.avatar_url} />
           <span className="min-w-0">
             <span className="block truncate text-[15px] font-semibold leading-5 text-white">{post.nickname}</span>
-            <span className="mt-2 block text-meta text-muted">{formatLocalTime(post.created_at)}</span>
+            <span className="mt-2 block text-meta text-muted">{formatLocalTime(post.created_at, t)}</span>
           </span>
         </Link>
         <div className="flex shrink-0 items-center gap-2">
@@ -81,7 +83,7 @@ export function LocalPostCard({
               onClick={onFavorite}
               type="button"
               whileTap={{ scale: 0.9 }}
-              aria-label={favorited ? "取消收藏" : "收藏"}
+              aria-label={favorited ? t("common.unfavorite") : t("common.favorite")}
             >
               <Bookmark className="h-4 w-4" fill={favorited ? "currentColor" : "none"} />
             </motion.button>
@@ -97,13 +99,13 @@ export function LocalPostCard({
       {onDelete ? (
         <button className="mt-4 inline-flex items-center gap-1.5 text-label text-red-300/70 transition hover:text-red-200" onClick={onDelete} type="button">
           <Trash2 className="h-3.5 w-3.5" />
-          删除
+          {t("common.delete")}
         </button>
       ) : null}
 
       {post.reaction_count >= 500 ? (
         <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-yellow-300/50 bg-yellow-300/15 px-3 py-1 text-label text-yellow-200">
-          🔥热门
+          🔥{t("post.hot")}
         </p>
       ) : null}
 
@@ -112,7 +114,7 @@ export function LocalPostCard({
           <EmotionButton active={activeEmotion === emotion.value} disabled={disabled} key={emotion.value} emotion={emotion} onReact={() => toggleEmotion(emotion)} />
         ))}
         <Link className="app-button col-span-2 flex items-center justify-center text-muted hover:bg-white/5 hover:text-white" href={`/post/${post.id}`}>
-          {post.comment_count} 条评论
+          {t("post.comments", { count: post.comment_count })}
         </Link>
       </div>
     </motion.article>
@@ -120,6 +122,7 @@ export function LocalPostCard({
 }
 
 function LikeBadge({ count, disabled, liked, onClick }: { count: number; disabled?: boolean; liked: boolean; onClick: () => void }) {
+  const { t } = useI18n();
   const [burst, setBurst] = useState(0);
   const [delta, setDelta] = useState<"+1" | "-1">("+1");
   const particles = ["✦", "怨", "✦", "Po", "✦"];
@@ -144,7 +147,7 @@ function LikeBadge({ count, disabled, liked, onClick }: { count: number; disable
       disabled={disabled}
     >
       <motion.span key={count} initial={{ scale: 1.22 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
-        {count}赞
+        {count} {t("common.like")}
       </motion.span>
 
       <AnimatePresence>
@@ -180,6 +183,7 @@ function LikeBadge({ count, disabled, liked, onClick }: { count: number; disable
 }
 
 function EmotionButton({ active, disabled, emotion, onReact }: { active: boolean; disabled?: boolean; emotion: Emotion; onReact?: () => void }) {
+  const { t } = useI18n();
   const [burst, setBurst] = useState(0);
   const particles = Array.from({ length: 8 });
 
@@ -197,7 +201,7 @@ function EmotionButton({ active, disabled, emotion, onReact }: { active: boolean
         type="button"
       >
         <span className="mr-2">{emotion.emoji}</span>
-        {emotion.label}
+        <span className="truncate">{t(emotion.label)}</span>
         <span className="pointer-events-none absolute inset-0">
           {particles.map((_, index) => (
             <motion.span
@@ -222,9 +226,9 @@ function EmotionButton({ active, disabled, emotion, onReact }: { active: boolean
             exit={{ opacity: 0, scale: 0.9, y: -4 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
           >
-            {emotion.message}
+            {t(emotion.message)}
             <Link className="mt-2 block text-label text-acid" href="/feedback">
-              去反馈
+              {t("common.goFeedback")}
             </Link>
           </motion.div>
         ) : null}
@@ -241,10 +245,10 @@ function getHeatClass(count: number) {
   return "";
 }
 
-function formatLocalTime(value: string) {
+function formatLocalTime(value: string, t: (key: string, values?: Record<string, string | number>) => string) {
   const minutes = Math.max(1, Math.floor((Date.now() - Date.parse(value)) / 60000));
-  if (minutes < 60) return `${minutes} 分钟前`;
+  if (minutes < 60) return t("common.minutesAgo", { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} 小时前`;
-  return `${Math.floor(hours / 24)} 天前`;
+  if (hours < 24) return t("common.hoursAgo", { count: hours });
+  return t("common.daysAgo", { count: Math.floor(hours / 24) });
 }

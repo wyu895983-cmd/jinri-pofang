@@ -1,0 +1,40 @@
+{
+  "createdAt": "2026-06-04T21:05:15.195Z",
+  "source": "file:///D:/文档/画画/jinri-pofang/portfolio-case/index.html",
+  "colorSpace": "sRGB (explicit PNG sRGB metadata; Chromium native pixels)",
+  "lossless": true,
+  "standard": {
+    "count": 13,
+    "total": 13179,
+    "outputPixels": [
+      1920,
+      1080
+    ]
+  },
+  "retina2": {
+    "count": 13,
+    "total": 13179,
+    "outputPixels": [
+      3840,
+      2160
+    ]
+  },
+  "retina3": {
+    "count": 13,
+    "total": 13179,
+    "outputPixels": [
+      5760,
+      3240
+    ]
+  },
+  "mobile": {
+    "count": 4,
+    "total": 2965,
+    "outputPixels": [
+      1290,
+      2796
+    ]
+  },
+  "chapters2": 8,
+  "chapters3": 8
+}

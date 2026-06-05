@@ -7,6 +7,7 @@ import { LocalPostCard } from "@/components/local-post-card";
 import { RichContent } from "@/components/rich-content";
 import { StickerPicker } from "@/components/sticker-picker";
 import { Toast } from "@/components/toast";
+import { useI18n } from "@/lib/i18n";
 import {
   createComment,
   deletePost,
@@ -25,8 +26,6 @@ import {
   toggleFavorite
 } from "@/lib/storage";
 
-const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
-const NETWORK_TOAST = "网络开小差了，稍后再试";
 const LIKE_LOCK_MS = 500;
 const DELETE_PARTICLE_COLORS = ["#b7ff3c", "#e4e4e7", "#6b5b86", "#8a9a78"] as const;
 const DELETE_PARTICLES = Array.from({ length: 100 }, (_, index) => {
@@ -47,6 +46,8 @@ const DELETE_PARTICLES = Array.from({ length: 100 }, (_, index) => {
 export default function PostDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useI18n();
+  const loginPrompt = `/login?message=${encodeURIComponent(t("auth.needName"))}`;
   const [post, setPost] = useState<LocalPost | null>(null);
   const [comments, setComments] = useState<LocalComment[]>([]);
   const [favorited, setFavorited] = useState(false);
@@ -155,7 +156,7 @@ export default function PostDetailPage() {
       setError("");
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "评论失败了。");
+      setError(err instanceof Error ? err.message : t("post.commentFailed"));
     } finally {
       setSubmittingComment(false);
     }
@@ -177,7 +178,7 @@ export default function PostDetailPage() {
       await Promise.all([likePost(post.id, reaction), wait(LIKE_LOCK_MS)]);
     } catch {
       setPost(previousPost);
-      showNetworkToast(setToast);
+      showNetworkToast(setToast, t);
     } finally {
       setPendingPostIds((value) => {
         const next = new Set(value);
@@ -205,7 +206,7 @@ export default function PostDetailPage() {
       await Promise.all([likeComment(commentId), wait(LIKE_LOCK_MS)]);
     } catch {
       setComments(previousComments);
-      showNetworkToast(setToast);
+      showNetworkToast(setToast, t);
     } finally {
       setPendingCommentIds((value) => {
         const next = new Set(value);
@@ -216,19 +217,19 @@ export default function PostDetailPage() {
   }
 
   async function handleDelete() {
-    if (!post || deleting || !window.confirm("确定删除这条破防吗？")) return;
+    if (!post || deleting || !window.confirm(t("post.deleteConfirm"))) return;
     try {
       deletingRef.current = true;
       setError("");
       setDeleting(true);
       await wait(1200);
       await deletePost(post.id);
-      setToast("已删除");
+      setToast(t("post.deleted"));
       window.setTimeout(() => router.push("/"), 500);
     } catch (err) {
       deletingRef.current = false;
       setDeleting(false);
-      setError(err instanceof Error ? err.message : "删除失败");
+      setError(err instanceof Error ? err.message : t("post.deleteFailed"));
     }
   }
 
@@ -239,7 +240,7 @@ export default function PostDetailPage() {
   if (!post) {
     return (
       <>
-        <div className="glass rounded-card p-8 text-center text-meta text-muted">这条破防瞬间已经找不到了。</div>
+        <div className="glass rounded-card p-8 text-center text-meta text-muted">{t("post.notFound")}</div>
         <Toast message={toast} />
       </>
     );
@@ -301,14 +302,14 @@ export default function PostDetailPage() {
       </div>
 
       <section className="glass rounded-card p-5">
-        <h2 className="text-h2 text-white">评论区</h2>
+        <h2 className="text-h2 text-white">{t("post.commentArea")}</h2>
         <form className="mt-4" onSubmit={submitComment}>
           {error ? <p className="mb-3 text-meta text-acid">{error}</p> : null}
           {replyTarget ? (
             <div className="mb-3 flex items-center justify-between gap-3 rounded-card border border-acid/30 bg-acid/10 px-3 py-2 text-meta text-acid">
-              <span className="truncate">回复 @{replyTarget.nickname}</span>
+              <span className="truncate">{t("post.replyingTo", { name: replyTarget.nickname })}</span>
               <button className="shrink-0 text-muted transition hover:text-white" onClick={() => setReplyTarget(null)} type="button">
-                取消
+                {t("common.cancel")}
               </button>
             </div>
           ) : null}
@@ -316,12 +317,12 @@ export default function PostDetailPage() {
             className="w-full resize-none rounded-card border border-line bg-ink/70 p-4 text-body text-white outline-none ring-acid/20 placeholder:text-zinc-600 focus:border-acid focus:ring-4"
             maxLength={80}
             name="content"
-            placeholder={replyTarget ? `回复 @${replyTarget.nickname}` : "80 字以内，接住这份破防。"}
+            placeholder={replyTarget ? t("post.replyPlaceholder", { name: replyTarget.nickname }) : t("post.commentPlaceholder")}
             rows={3}
           />
           <StickerPicker />
           <button className="app-button mt-3 bg-acid text-ink hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60" disabled={submittingComment}>
-            {submittingComment ? "发送中..." : "评论"}
+            {submittingComment ? t("create.submitting") : t("common.comment")}
           </button>
         </form>
 
@@ -343,7 +344,7 @@ export default function PostDetailPage() {
                     <img alt="" className="h-9 w-9 rounded-2xl border border-acid/20 bg-acid/10 object-contain p-1" decoding="async" loading="lazy" src={comment.avatar_url} />
                     <div className="min-w-0">
                       <p className="truncate text-[15px] font-semibold leading-5 text-white">{comment.nickname}</p>
-                      <p className="mt-1 text-meta text-muted">{formatCommentTime(comment.created_at)}</p>
+                      <p className="mt-1 text-meta text-muted">{formatCommentTime(comment.created_at, t)}</p>
                     </div>
                   </div>
                   <motion.button
@@ -356,27 +357,27 @@ export default function PostDetailPage() {
                     whileTap={{ scale: 0.92 }}
                   >
                     <motion.span key={comment.like_count} initial={{ scale: 1.22 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
-                      {comment.like_count}赞
+                      {comment.like_count} {t("common.like")}
                     </motion.span>
                   </motion.button>
                 </div>
                 <RichContent className="text-body text-zinc-200" content={comment.content} />
                 <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setReplyTarget(comment)} type="button">
-                  回复
+                  {t("common.reply")}
                 </button>
                 {repliesByParent[comment.id]?.length ? (
                   <div className="mt-4 space-y-3 border-l border-acid/20 pl-4">
                     {repliesByParent[comment.id].map((reply) => (
                       <article className="rounded-card border border-line bg-ink/35 p-3" id={`comment-${reply.id}`} key={reply.id}>
                         <div className="mb-3 rounded-button border-l-2 border-acid/30 bg-white/[0.04] px-3 py-2 text-meta text-muted">
-                          @{getReplyContext(reply, commentsById, comment).nickname}：{getReplyContext(reply, commentsById, comment).content}
+                          {formatReplyContext(reply, commentsById, comment, t)}
                         </div>
                         <div className="mb-2 flex items-center justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-2">
                             <img alt="" className="h-7 w-7 rounded-xl border border-acid/20 bg-acid/10 object-contain p-1" decoding="async" loading="lazy" src={reply.avatar_url} />
                             <div className="min-w-0">
                               <p className="truncate text-[14px] font-semibold leading-5 text-white">{reply.nickname}</p>
-                              <p className="mt-0.5 text-meta text-muted">{formatCommentTime(reply.created_at)}</p>
+                              <p className="mt-0.5 text-meta text-muted">{formatCommentTime(reply.created_at, t)}</p>
                             </div>
                           </div>
                           <motion.button
@@ -389,13 +390,13 @@ export default function PostDetailPage() {
                             whileTap={{ scale: 0.92 }}
                           >
                             <motion.span key={reply.like_count} initial={{ scale: 1.22 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
-                              {reply.like_count}赞
+                              {reply.like_count} {t("common.like")}
                             </motion.span>
                           </motion.button>
                         </div>
                         <RichContent className="text-body text-zinc-200" content={`${reply.nickname}：${reply.content}`} />
                         <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setReplyTarget(reply)} type="button">
-                          回复
+                          {t("common.reply")}
                         </button>
                       </article>
                     ))}
@@ -404,7 +405,7 @@ export default function PostDetailPage() {
               </motion.article>
             ))
           ) : (
-            <p className="rounded-card border border-dashed border-line p-8 text-center text-meta text-muted">暂无评论，空气突然安静。</p>
+            <p className="rounded-card border border-dashed border-line p-8 text-center text-meta text-muted">{t("post.emptyComments")}</p>
           )}
         </div>
       </section>
@@ -435,8 +436,8 @@ function applyOptimisticCommentReaction(comments: LocalComment[], commentId: str
   });
 }
 
-function showNetworkToast(setToast: (value: string) => void) {
-  setToast(NETWORK_TOAST);
+function showNetworkToast(setToast: (value: string) => void, t: (key: string, values?: Record<string, string | number>) => string) {
+  setToast(t("common.networkError"));
   window.setTimeout(() => setToast(""), 1800);
 }
 
@@ -455,6 +456,16 @@ function getReplyContext(reply: LocalComment, commentsById: Map<string, LocalCom
     nickname: reply.replyToUser?.nickname || parentComment?.nickname || reply.parent_nickname || topLevelComment.nickname,
     content: reply.replyToComment?.content || parentComment?.content || topLevelComment.content
   };
+}
+
+function formatReplyContext(
+  reply: LocalComment,
+  commentsById: Map<string, LocalComment>,
+  topLevelComment: LocalComment,
+  t: (key: string, values?: Record<string, string | number>) => string
+) {
+  const context = getReplyContext(reply, commentsById, topLevelComment);
+  return t("post.replyContext", { name: context.nickname, content: context.content });
 }
 
 function PostDetailSkeleton() {
@@ -498,7 +509,7 @@ function CommentSkeleton() {
   );
 }
 
-function formatCommentTime(value: string) {
+function formatCommentTime(value: string, t: (key: string, values?: Record<string, string | number>) => string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
 
@@ -507,8 +518,8 @@ function formatCommentTime(value: string) {
   const minutes = Math.floor(diffMs / 60000);
   const sameDay = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
 
-  if (minutes < 1) return "刚刚";
-  if (minutes < 60) return `${minutes}分钟前`;
+  if (minutes < 1) return t("common.justNow");
+  if (minutes < 60) return t("common.minutesAgo", { count: minutes });
   if (sameDay) return `今天 ${padTime(date.getHours())}:${padTime(date.getMinutes())}`;
   return `${padTime(date.getMonth() + 1)}-${padTime(date.getDate())} ${padTime(date.getHours())}:${padTime(date.getMinutes())}`;
 }

@@ -5,12 +5,14 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { Trophy } from "lucide-react";
 import { FeedSkeleton } from "@/components/skeleton";
+import { useI18n } from "@/lib/i18n";
 import { getLevelInfo } from "@/lib/levels";
 import { getLeaderboard, getPosts, LocalPost, LocalUser } from "@/lib/storage";
 
 type HotTab = "today" | "week" | "all";
 
 export default function LeaderboardPage() {
+  const { t } = useI18n();
   const [topLiked, setTopLiked] = useState<LocalPost[]>([]);
   const [topCommented, setTopCommented] = useState<LocalPost[]>([]);
   const [topUsers, setTopUsers] = useState<LocalUser[]>([]);
@@ -38,16 +40,16 @@ export default function LeaderboardPage() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="mb-2 text-label text-acid">排行榜</p>
-        <h1 className="text-h1 text-white">今天谁在互联网大杀四方</h1>
+        <p className="mb-2 text-label text-acid">{t("leaderboard.eyebrow")}</p>
+        <h1 className="text-h1 text-white">{t("leaderboard.title")}</h1>
       </div>
 
       <section className="glass rounded-card p-5">
         <div className="mb-4 grid grid-cols-3 gap-2">
           {[
-            ["today", "今日热门"],
-            ["week", "本周热门"],
-            ["all", "总热门"]
+            ["today", t("leaderboard.today")],
+            ["week", t("leaderboard.week")],
+            ["all", t("leaderboard.all")]
           ].map(([value, label]) => (
             <button
               className={`app-button border ${tab === value ? "border-acid/70 bg-acid/15 text-acid shadow-acid" : "border-line bg-white/[0.04] text-muted"}`}
@@ -59,16 +61,16 @@ export default function LeaderboardPage() {
             </button>
           ))}
         </div>
-        {loading ? <FeedSkeleton /> : <RankPanel items={hotPosts} valueKey="score" suffix="热度" />}
+        {loading ? <FeedSkeleton /> : <RankPanel items={hotPosts} valueKey="score" suffix={t("leaderboard.heatSuffix")} />}
       </section>
 
-      <RankPanel title="今日神吐槽" items={topLiked} valueKey="reaction_count" suffix="赞" />
-      <RankPanel title="今日破防王" items={topCommented} valueKey="comment_count" suffix="评" />
+      <RankPanel title={t("leaderboard.topLiked")} items={topLiked} valueKey="reaction_count" suffix={t("leaderboard.likesSuffix")} />
+      <RankPanel title={t("leaderboard.topCommented")} items={topCommented} valueKey="comment_count" suffix={t("leaderboard.commentsSuffix")} />
 
       <section className="glass rounded-card p-5">
         <h2 className="mb-4 flex items-center gap-2 text-h2 text-white">
           <Trophy className="icon-18 text-acid" />
-          成长榜
+          {t("leaderboard.growth")}
         </h2>
         <div className="space-y-3">
           {topUsers.length ? (
@@ -92,7 +94,7 @@ export default function LeaderboardPage() {
               );
             })
           ) : (
-            <p className="rounded-card border border-dashed border-line p-8 text-center text-meta text-muted">取个名字后，你就会出现在这里。</p>
+            <p className="rounded-card border border-dashed border-line p-8 text-center text-meta text-muted">{t("leaderboard.emptyUsers")}</p>
           )}
         </div>
       </section>
@@ -111,6 +113,7 @@ function RankPanel({
   valueKey: "reaction_count" | "comment_count" | "score";
   suffix: string;
 }) {
+  const { t } = useI18n();
   return (
     <section className={title ? "glass rounded-card p-5" : ""}>
       {title ? <h2 className="mb-4 text-h2 text-white">{title}</h2> : null}
@@ -132,7 +135,7 @@ function RankPanel({
             </motion.div>
           ))
         ) : (
-          <p className="rounded-card border border-dashed border-line p-8 text-center text-meta text-muted">今天还没人上榜。</p>
+          <p className="rounded-card border border-dashed border-line p-8 text-center text-meta text-muted">{t("leaderboard.emptyRank")}</p>
         )}
       </div>
     </section>

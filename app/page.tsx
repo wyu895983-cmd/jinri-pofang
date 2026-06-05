@@ -8,13 +8,14 @@ import { DynamicHeadline } from "@/components/dynamic-headline";
 import { FeedSkeleton } from "@/components/skeleton";
 import { LocalPostCard } from "@/components/local-post-card";
 import { Toast } from "@/components/toast";
+import { useI18n } from "@/lib/i18n";
 import { getCurrentUser, getCurrentUserId, getFavorites, getPosts, isFavorite, likePost, LocalPost, subscribeToPostFeed, toggleFavorite } from "@/lib/storage";
 
-const loginPrompt = `/login?message=${encodeURIComponent("取个名字才能留下你的破防痕迹。")}`;
-const NETWORK_TOAST = "网络开小差了，稍后再试";
 const LIKE_LOCK_MS = 500;
 
 export default function HomePage() {
+  const { t } = useI18n();
+  const loginPrompt = `/login?message=${encodeURIComponent(t("auth.needName"))}`;
   const [posts, setPosts] = useState<LocalPost[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -66,7 +67,7 @@ export default function HomePage() {
       await Promise.all([likePost(postId, reaction), wait(LIKE_LOCK_MS)]);
     } catch {
       setPosts(previousPosts);
-      showToast(setToast, NETWORK_TOAST);
+      showToast(setToast, t("common.networkError"));
     } finally {
       setPendingPostIds((value) => {
         const next = new Set(value);
@@ -81,7 +82,7 @@ export default function HomePage() {
       toggleFavorite(postId);
       setFavoriteIds(new Set(getFavorites().map((favorite) => favorite.post_id)));
     } catch {
-      showToast(setToast, "收藏失败，稍后再试");
+      showToast(setToast, t("common.networkError"));
     }
   }
 
@@ -89,12 +90,12 @@ export default function HomePage() {
     <div className="space-y-5">
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-label text-acid">今日情绪广场</p>
+          <p className="text-label text-acid">{t("home.eyebrow")}</p>
           <div className="flex gap-2">
-            <Link className="grid h-9 w-9 place-items-center rounded-2xl border border-line bg-white/[0.04] text-muted" href="/search" aria-label="搜索">
+            <Link className="grid h-9 w-9 place-items-center rounded-2xl border border-line bg-white/[0.04] text-muted" href="/search" aria-label={t("home.searchAria")}>
               <Search className="h-4 w-4" />
             </Link>
-            <Link className="grid h-9 w-9 place-items-center rounded-2xl border border-line bg-white/[0.04] text-muted" href="/favorites" aria-label="收藏">
+            <Link className="grid h-9 w-9 place-items-center rounded-2xl border border-line bg-white/[0.04] text-muted" href="/favorites" aria-label={t("home.favoriteAria")}>
               <Bookmark className="h-4 w-4" />
             </Link>
           </div>
@@ -104,11 +105,11 @@ export default function HomePage() {
 
       <section className="grid grid-cols-2 gap-3">
         <div className="glass rounded-card p-4">
-          <p className="text-meta text-muted">今日破防</p>
+          <p className="text-meta text-muted">{t("home.todayPosts")}</p>
           <p className="mt-1 text-h2 text-white">{posts.length}</p>
         </div>
         <div className="glass rounded-card p-4">
-          <p className="text-meta text-muted">互动热度</p>
+          <p className="text-meta text-muted">{t("home.heat")}</p>
           <motion.p
             className="mt-1 text-h2 text-acid drop-shadow-[0_0_16px_rgba(182,255,59,0.28)]"
             animate={{ scale: [1, 1.045, 1], filter: ["brightness(1)", "brightness(1.25)", "brightness(1)"] }}
