@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Bookmark, Edit3, LogOut } from "lucide-react";
+import { Bookmark, ChevronDown, Edit3, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AvatarPicker } from "@/components/avatar-picker";
 import { BrandMark } from "@/components/brand-mark";
@@ -39,6 +39,7 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState<InteractionNotification[]>([]);
   const [likesExpanded, setLikesExpanded] = useState(false);
   const [commentsExpanded, setCommentsExpanded] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -135,6 +136,8 @@ export default function ProfilePage() {
   const commentNotifications = notifications.filter((notification) => notification.type === "comment");
   const visibleLikeNotifications = likesExpanded ? likeNotifications : likeNotifications.slice(0, 2);
   const visibleCommentNotifications = commentsExpanded ? commentNotifications : commentNotifications.slice(0, 2);
+  const historyCanCollapse = posts.length > 3;
+  const visibleHistoryPosts = historyCanCollapse && !historyExpanded ? posts.slice(0, 3) : posts;
 
   function formatNotificationTime(value: string) {
     const date = new Date(value);
@@ -299,11 +302,32 @@ export default function ProfilePage() {
         </div>
       </section>
 
+      <button
+        className="app-button flex w-full items-center justify-center gap-2 border border-red-400/35 bg-red-500/10 text-red-200 hover:bg-red-500/15 hover:text-red-100"
+        onClick={() => setLogoutOpen(true)}
+        type="button"
+      >
+        <LogOut className="h-4 w-4" />
+        {t("profile.logout")}
+      </button>
+
       <section>
-        <h2 className="mb-4 text-h2 text-white">{t("profile.history")}</h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-h2 text-white">{t("profile.history")}</h2>
+          {historyCanCollapse ? (
+            <button
+              className="inline-flex items-center gap-1 text-label text-muted transition hover:text-acid"
+              onClick={() => setHistoryExpanded((value) => !value)}
+              type="button"
+            >
+              {historyExpanded ? t("profile.collapse") : t("profile.expand")}
+              <ChevronDown className={`h-4 w-4 transition ${historyExpanded ? "rotate-180" : ""}`} />
+            </button>
+          ) : null}
+        </div>
         <div className="space-y-4">
           {posts.length ? (
-            posts.map((post) => (
+            visibleHistoryPosts.map((post) => (
               <Link className="glass block rounded-card p-5" href={`/post/${post.id}`} key={post.id}>
                 <RichContent className="whitespace-pre-wrap text-body text-zinc-100" content={post.content} />
                 <p className="mt-3 text-meta text-muted">
@@ -316,15 +340,6 @@ export default function ProfilePage() {
           )}
         </div>
       </section>
-
-      <button
-        className="app-button flex w-full items-center justify-center gap-2 border border-red-400/35 bg-red-500/10 text-red-200 hover:bg-red-500/15 hover:text-red-100"
-        onClick={() => setLogoutOpen(true)}
-        type="button"
-      >
-        <LogOut className="h-4 w-4" />
-        {t("profile.logout")}
-      </button>
 
       {logoutOpen ? (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-ink/75 p-5 backdrop-blur-md">
