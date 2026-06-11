@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Bookmark, ChevronDown, Edit3, LogOut } from "lucide-react";
+import { Bookmark, ChevronDown, ChevronRight, Edit3, LogOut, Settings, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AvatarPicker } from "@/components/avatar-picker";
 import { BrandMark } from "@/components/brand-mark";
@@ -220,7 +220,7 @@ export default function ProfilePage() {
             <p className="text-label text-acid">{t("profile.file")}</p>
             <h1 className="mt-1 truncate text-h1 text-white">{user.nickname}</h1>
             <p className="mt-1 text-meta text-muted">
-              Lv{level.level} · {level.title}
+              {t("profile.levelLine", { level: level.level, title: getProfileLevelTitle(level.level, t) })}
             </p>
           </div>
           <button className="grid h-10 w-10 place-items-center rounded-2xl border border-line text-muted" onClick={() => setEditing((value) => !value)} type="button">
@@ -302,6 +302,23 @@ export default function ProfilePage() {
         </div>
       </section>
 
+      <section className="glass rounded-card overflow-hidden">
+        <Link className="flex items-center gap-3 border-b border-line px-5 py-4 transition hover:bg-white/[0.04]" href="/profile/account">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-acid/25 bg-acid/10 text-acid">
+            <ShieldCheck className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1 text-body text-zinc-100">{t("profile.accountSecurity")}</span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+        </Link>
+        <Link className="flex items-center gap-3 px-5 py-4 transition hover:bg-white/[0.04]" href="/profile/settings">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-acid/25 bg-acid/10 text-acid">
+            <Settings className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1 text-body text-zinc-100">{t("settings.title")}</span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+        </Link>
+      </section>
+
       <button
         className="app-button flex w-full items-center justify-center gap-2 border border-red-400/35 bg-red-500/10 text-red-200 hover:bg-red-500/15 hover:text-red-100"
         onClick={() => setLogoutOpen(true)}
@@ -374,4 +391,14 @@ export default function ProfilePage() {
       ) : null}
     </div>
   );
+}
+
+function getProfileLevelTitle(level: number, t: (key: string, values?: Record<string, string | number>) => string) {
+  if (level >= 100) return t("profile.levelTitle.god");
+  if (level >= 50) return t("profile.levelTitle.sober");
+  if (level >= 30) return t("profile.levelTitle.performer");
+  if (level >= 20) return t("profile.levelTitle.mage");
+  if (level >= 10) return t("profile.levelTitle.master");
+  if (level >= 5) return t("profile.levelTitle.specialist");
+  return t("profile.levelTitle.intern");
 }

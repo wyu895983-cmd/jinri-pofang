@@ -82,13 +82,15 @@ export function BackButton() {
   if (pathname === "/") return null;
 
   return (
-    <button
-      aria-label={t("common.back")}
-      className="fixed left-[max(10px,calc((100vw-430px)/2+10px))] top-[calc(env(safe-area-inset-top)+72px)] z-50 grid h-9 w-9 place-items-center rounded-2xl border border-acid/35 bg-ink/88 text-acid shadow-acid backdrop-blur-xl transition active:scale-95 hover:bg-acid/10"
-      onClick={goBack}
-      type="button"
-    >
-      <ChevronLeft className="icon-18" />
-    </button>
+    <div className="-mb-1 mx-auto w-full max-w-[430px] px-4 pt-4">
+      <button
+        aria-label={t("common.back")}
+        className="grid h-9 w-9 place-items-center rounded-2xl border border-acid/35 bg-ink/88 text-acid shadow-acid backdrop-blur-xl transition active:scale-95 hover:bg-acid/10"
+        onClick={goBack}
+        type="button"
+      >
+        <ChevronLeft className="icon-18" />
+      </button>
+    </div>
   );
 }
