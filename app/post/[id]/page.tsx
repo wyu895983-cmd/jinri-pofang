@@ -148,15 +148,18 @@ export default function PostDetailPage() {
     if (submittingComment) return;
     if (!requireName()) return;
 
+    const form = event.currentTarget;
+    const content = String(new FormData(form).get("content") ?? "");
+
     try {
       setSubmittingComment(true);
-      await createComment(params.id, String(new FormData(event.currentTarget).get("content") ?? ""), replyTarget?.id ?? null);
-      event.currentTarget.reset();
+      await createComment(params.id, content, replyTarget?.id ?? null);
+      form.reset();
       setReplyTarget(null);
       setError("");
       await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("post.commentFailed"));
+    } catch {
+      setError("评论失败，请稍后再试");
     } finally {
       setSubmittingComment(false);
     }
