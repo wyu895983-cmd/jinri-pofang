@@ -9,7 +9,9 @@
     "lint": "next lint",
     "portfolio:screenshots": "node scripts/capture-portfolio-screens.mjs",
     "stickers:register": "node scripts/register-popo-stickers.mjs",
-    "supabase:feedback:test": "node --env-file=.env.local scripts/test-supabase-feedback.mjs"
+    "supabase:feedback:test": "node --env-file=.env.local scripts/test-supabase-feedback.mjs",
+    "check:ai-bots": "node scripts/check-ai-bots.mjs",
+    "seed:ai-bots": "node scripts/seed-ai-bots.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

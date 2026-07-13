@@ -70,7 +70,10 @@ export function LocalPostCard({
         <Link href={post.is_mock ? "#" : "/profile"} className="flex min-w-0 items-center gap-3">
           <img alt="" className="h-11 w-11 shrink-0 rounded-2xl border border-acid/25 bg-acid/10 object-contain p-1" src={post.avatar_url} />
           <span className="min-w-0">
-            <span className="block truncate text-[15px] font-semibold leading-5 text-white">{post.nickname}</span>
+            <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[15px] font-semibold leading-5 text-white">
+              <span className="truncate">{post.nickname}</span>
+              {post.is_ai_post ? <AiBadge label={post.ai_display_label ?? "AI吐槽员"} /> : null}
+            </span>
             <span className="mt-2 block text-meta text-muted">{formatLocalTime(post.created_at, t)}</span>
           </span>
         </Link>
@@ -119,6 +122,10 @@ export function LocalPostCard({
       </div>
     </motion.article>
   );
+}
+
+function AiBadge({ label }: { label: string }) {
+  return <span className="shrink-0 rounded-full border border-acid/25 bg-acid/10 px-2 py-0.5 text-[10px] font-medium leading-none text-acid">{label}</span>;
 }
 
 function LikeBadge({ count, disabled, liked, onClick }: { count: number; disabled?: boolean; liked: boolean; onClick: () => void }) {
