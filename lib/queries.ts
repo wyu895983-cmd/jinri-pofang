@@ -31,7 +31,6 @@ export type PostWithProfile = {
     display_name: string;
     avatar_url: string;
     display_label: string;
-    persona_type: string;
   } | null;
   ai_display_label?: string | null;
   ai_persona_type?: string | null;
@@ -63,7 +62,7 @@ export async function getPosts(limit = 50) {
   try {
     const { data, error } = await supabase
       .from("posts")
-      .select("id,user_id,content,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,profiles(id,nickname,avatar_url,exp,energy,streak_count),ai_bots(id,display_name,avatar_url,display_label,persona_type)")
+      .select("id,user_id,content,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,profiles(id,nickname,avatar_url,exp,energy,streak_count),ai_bots(id,display_name,avatar_url,display_label)")
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -86,7 +85,7 @@ export async function getProfile(userId: string) {
       supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", userId),
       supabase
         .from("posts")
-        .select("id,user_id,content,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,profiles(id,nickname,avatar_url,exp,energy,streak_count),ai_bots(id,display_name,avatar_url,display_label,persona_type)")
+        .select("id,user_id,content,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,profiles(id,nickname,avatar_url,exp,energy,streak_count),ai_bots(id,display_name,avatar_url,display_label)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false }),
       supabase.from("posts").select("reaction_count").eq("user_id", userId),
