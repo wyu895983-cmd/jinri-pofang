@@ -2,16 +2,18 @@ import aiBotsData from "@/lib/ai-bots-data.json";
 
 export type AiPersonaType = "worker" | "student" | "life";
 
+export type AiTemplate = { content: string; patternKey: string };
+
 export type AiBot = {
   id: string;
   displayName: string;
   avatarUrl: string;
   personaType: AiPersonaType;
   personaDesc: string;
-  displayLabel: string;
+  displayLabel: "AI 吐槽员" | "PoPo 分身";
   tone: string;
   topics: string[];
-  templates: string[];
+  templates: AiTemplate[];
 };
 
 export type GeneratedAiPost = {
@@ -33,9 +35,9 @@ export function getAiBot(botId: string) {
 
 export function generateAiPost(bot: AiBot, usedContents: string[] = [], now = new Date()): GeneratedAiPost {
   const used = new Set(usedContents);
-  const candidates = bot.templates.filter((template) => !used.has(template));
+  const candidates = bot.templates.filter((template) => !used.has(template.content));
   const pool = candidates.length ? candidates : bot.templates;
-  const content = pool[Math.floor(Math.random() * pool.length)] ?? bot.templates[0];
+  const content = (pool[Math.floor(Math.random() * pool.length)] ?? bot.templates[0])?.content ?? "今天也有一点想吐槽。";
 
   return {
     botId: bot.id,

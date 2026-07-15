@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizePostAuthor, type PostAuthor } from "@/components/post-author";
 import { HOME_COPY_POOL } from "@/lib/copy-pool";
 import { createAiAvatarFallback, pickAiColdStartPosts } from "@/lib/ai-bots";
 import { createSupabaseBrowserClient, isSupabaseBrowserConfigured } from "@/lib/supabase/client";
@@ -33,6 +34,7 @@ export type LocalPost = {
   userId?: string;
   nickname: string;
   avatar_url: string;
+  author: PostAuthor;
   content: string;
   sticker_id?: string | null;
   reaction_count: number;
@@ -177,13 +179,22 @@ function toPost(row: any, likedBy: string[] = []): LocalPost {
   const aiBot = Array.isArray(row.ai_bots) ? row.ai_bots[0] : row.ai_bots;
   const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
   const isAiPost = Boolean(row.is_ai_post);
-  const nickname = isCurrentUserPost && current ? current.nickname : isAiPost ? aiBot?.display_name ?? row.nickname : row.nickname ?? profile?.nickname;
-  const avatar = isCurrentUserPost && current ? current.avatar_url : isAiPost ? aiBot?.avatar_url ?? row.avatar_url ?? DEFAULT_AVATARS[0] : row.avatar_url ?? profile?.avatar_url ?? DEFAULT_AVATARS[0];
+  const humanNickname = isCurrentUserPost && current ? current.nickname : row.nickname ?? profile?.nickname ?? "匿名路过";
+  const humanAvatar = isCurrentUserPost && current ? current.avatar_url : row.avatar_url ?? profile?.avatar_url ?? DEFAULT_AVATARS[0];
+  const author = normalizePostAuthor({
+    userId: postUserId,
+    isAi: isAiPost,
+    profile: { id: profile?.id ?? postUserId, nickname: humanNickname, avatarUrl: humanAvatar },
+    aiBot: aiBot
+      ? { id: aiBot.id, displayName: aiBot.display_name, avatarUrl: aiBot.avatar_url, displayLabel: aiBot.display_label }
+      : null
+  });
   return {
     id: row.id,
     user_id: postUserId,
-    nickname,
-    avatar_url: avatar,
+    nickname: author.displayName,
+    avatar_url: author.avatarUrl,
+    author,
     content: row.content,
     sticker_id: row.sticker_id,
     reaction_count: Number(row.reaction_count ?? 0),
@@ -193,7 +204,7 @@ function toPost(row: any, likedBy: string[] = []): LocalPost {
     updated_at: row.updated_at,
     is_ai_post: isAiPost,
     ai_bot_id: row.ai_bot_id ?? null,
-    ai_display_label: row.ai_display_label ?? aiBot?.display_label ?? null,
+    ai_display_label: author.aiLabel,
     ai_persona_type: row.ai_persona_type ?? aiBot?.persona_type ?? null
   };
 }
@@ -225,13 +236,43 @@ function toComment(row: any, likedBy: string[] = []): LocalComment {
 
 function seedPosts(): LocalPost[] {
   const existing = readJson<LocalPost[] | null>(POSTS_KEY, null);
-  if (existing) return existing;
+  if (existing) {
+    return existing.map((post) =>
+      post.author
+        ? post
+        : {
+            ...post,
+            author: normalizePostAuthor({
+              userId: post.ai_bot_id ?? post.user_id,
+              isAi: Boolean(post.is_ai_post),
+              profile: { id: post.user_id, nickname: post.nickname, avatarUrl: post.avatar_url },
+              aiBot: post.is_ai_post
+                ? {
+                    id: post.ai_bot_id ?? post.user_id,
+                    displayName: post.nickname,
+                    avatarUrl: post.avatar_url,
+                    displayLabel: post.ai_display_label
+                  }
+                : null
+            })
+          }
+    );
+  }
 
   const mockPosts: LocalPost[] = HOME_COPY_POOL.map((content, index) => ({
     id: `mock-${index + 1}`,
     user_id: `mock-user-${index % mockNicknames.length}`,
     nickname: mockNicknames[index % mockNicknames.length],
     avatar_url: DEFAULT_AVATARS[index % DEFAULT_AVATARS.length],
+    author: normalizePostAuthor({
+      userId: `mock-user-${index % mockNicknames.length}`,
+      isAi: false,
+      profile: {
+        id: `mock-user-${index % mockNicknames.length}`,
+        nickname: mockNicknames[index % mockNicknames.length],
+        avatarUrl: DEFAULT_AVATARS[index % DEFAULT_AVATARS.length]
+      }
+    }),
     content,
     reaction_count: 8 + ((index * 13) % 180),
     comment_count: (index * 5) % 22,
@@ -245,6 +286,16 @@ function seedPosts(): LocalPost[] {
     user_id: post.botId,
     nickname: post.bot.displayName,
     avatar_url: post.bot.avatarUrl || createAiAvatarFallback(post.bot),
+    author: normalizePostAuthor({
+      userId: post.botId,
+      isAi: true,
+      aiBot: {
+        id: post.botId,
+        displayName: post.bot.displayName,
+        avatarUrl: post.bot.avatarUrl || createAiAvatarFallback(post.bot),
+        displayLabel: post.bot.displayLabel
+      }
+    }),
     content: post.content,
     reaction_count: 2 + ((index * 7) % 18),
     comment_count: 0,
@@ -657,6 +708,11 @@ export async function createPost(content: string) {
     user_id: user.guest_user_id,
     nickname: user.nickname,
     avatar_url: user.avatar_url,
+    author: normalizePostAuthor({
+      userId: user.guest_user_id,
+      isAi: false,
+      profile: { id: user.guest_user_id, nickname: user.nickname, avatarUrl: user.avatar_url }
+    }),
     content: content.trim(),
     reaction_count: 0,
     comment_count: 0,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { normalizePostAuthor, PostAuthorRow } from "@/components/post-author";
 import { RichContent } from "@/components/rich-content";
 import { reactToPost } from "@/lib/actions";
 import { getLevelInfo } from "@/lib/levels";
@@ -26,6 +27,25 @@ function heatClass(count: number) {
 
 export function PostCard({ post, timeMode = "relative" }: { post: PostWithProfile; timeMode?: TimeFormatMode }) {
   const level = getLevelInfo(post.profiles.exp);
+  const author =
+    post.author ??
+    normalizePostAuthor({
+      userId: post.user_id,
+      isAi: Boolean(post.is_ai_post),
+      profile: {
+        id: post.profiles.id,
+        nickname: post.profiles.nickname,
+        avatarUrl: post.profiles.avatar_url
+      },
+      aiBot: post.ai_bots
+        ? {
+            id: post.ai_bots.id,
+            displayName: post.ai_bots.display_name,
+            avatarUrl: post.ai_bots.avatar_url,
+            displayLabel: post.ai_bots.display_label
+          }
+        : null
+    });
   const [badgeLiked, setBadgeLiked] = useState(false);
   const [badgeLikes, setBadgeLikes] = useState(post.reaction_count);
   const [badgeBurst, setBadgeBurst] = useState(0);
@@ -47,15 +67,11 @@ export function PostCard({ post, timeMode = "relative" }: { post: PostWithProfil
       transition={{ duration: 0.2 }}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
-        <Link href={`/profile?user=${post.user_id}`} className="min-w-0">
-          <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[15px] font-semibold leading-5 text-white">
-            <span className="truncate">{(post.is_ai_post ? post.ai_bots?.display_name : post.profiles.nickname) ?? post.profiles.nickname}</span>
-            {post.is_ai_post ? <span className="shrink-0 rounded-full border border-acid/25 bg-acid/10 px-2 py-0.5 text-[10px] font-medium leading-none text-acid">{post.ai_bots?.display_label ?? post.ai_display_label ?? "AI吐槽员"}</span> : null}
-          </p>
-          <p className="mt-2 text-meta text-muted">
-            Lv{level.level} · {level.title} · {formatTime(post.created_at, { mode: timeMode, editedAt: post.updated_at })}
-          </p>
-        </Link>
+        <PostAuthorRow
+          author={author}
+          humanHref={`/profile?user=${post.user_id}`}
+          meta={<>Lv{level.level} · {level.title} · {formatTime(post.created_at, { mode: timeMode, editedAt: post.updated_at })}</>}
+        />
         <LikeBadge count={badgeLikes} liked={badgeLiked} burst={badgeBurst} onClick={toggleBadgeLike} />
       </div>
 

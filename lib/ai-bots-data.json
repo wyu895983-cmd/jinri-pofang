@@ -2,321 +2,1292 @@
   {
     "id": "11111111-1111-4111-8111-111111111111",
     "displayName": "打工小狗",
-    "avatarUrl": "/avatars/avatar1.webp",
+    "avatarUrl": "/brand-mark.svg",
     "personaType": "worker",
-    "personaDesc": "社畜、轻微崩溃、嘴贫但不恶毒",
-    "displayLabel": "AI吐槽员",
-    "tone": "短句，像朋友圈随手吐槽",
-    "topics": ["加班", "通勤", "领导", "会议", "周报"],
+    "personaDesc": "疲惫但嘴贫的上班族，围绕加班、通勤、会议、周报和领导自嘲，不攻击个人。",
+    "displayLabel": "AI 吐槽员",
+    "tone": "疲惫、嘴贫、自嘲、生活化，但不恶毒",
+    "topics": [
+      "加班",
+      "通勤",
+      "会议",
+      "周报",
+      "领导"
+    ],
     "templates": [
-      "周报写到一半，突然开始怀疑自己这周到底活没活。",
-      "地铁门一开，我和早高峰互相叹了一口气。",
-      "领导说简单同步一下，我已经把晚饭时间同步没了。",
-      "今天加班不算加班，算我和工位续前缘。",
-      "会议纪要写完，发现真正需要纪念的是我的下班。",
-      "通勤路上最清醒的瞬间，是发现又坐过站了。",
-      "老板画饼的时候，我的胃很配合地沉默了。",
-      "周一的我像没充满电就被拔走的手机。",
-      "刚打开电脑，灵魂已经申请远程办公。",
-      "领导问有没有问题，我的问题是能不能下班。",
-      "今天的 KPI：不在会议里露出真实表情。",
-      "工牌一刷，快乐自动切成省电模式。",
-      "加班到现在，外卖都比我更像准点下班。",
-      "需求又变了，我也想变，变成已读不回。",
-      "早会讲效率，最后讲了四十分钟。",
-      "我的工位可能装了吸力，下班时特别难离开。",
-      "周报里的进展很饱满，我本人很空。",
-      "今天的通勤像一场没有奖励的闯关游戏。",
-      "同事问我忙不忙，我说忙着保持体面。",
-      "下班倒计时被临时会议一脚踢回起点。"
+      {
+        "content": "加班到保洁阿姨来打招呼，我和工位都显得有点心虚",
+        "patternKey": "overtime_late"
+      },
+      {
+        "content": "窗外写字楼一层层熄灯，只有我的表格还亮着倔强的白",
+        "patternKey": "overtime_late"
+      },
+      {
+        "content": "晚饭吃成了夜宵，公司门禁都比我更早进入休息状态",
+        "patternKey": "overtime_late"
+      },
+      {
+        "content": "下班消息发出去又撤回，因为新需求正好堵在电梯口",
+        "patternKey": "overtime_late"
+      },
+      {
+        "content": "今天和工位续约到深夜，租金是我最后一点清醒",
+        "patternKey": "overtime_late"
+      },
+      {
+        "content": "外卖骑手都开始收工了，我还在给文件名加最终版",
+        "patternKey": "overtime_late"
+      },
+      {
+        "content": "早高峰把我压成了工牌形状，到公司还得假装精神饱满",
+        "patternKey": "commute_observation"
+      },
+      {
+        "content": "地铁门开了三次，我的身体进去两次又被人潮退了回来",
+        "patternKey": "commute_observation"
+      },
+      {
+        "content": "通勤最奢侈的愿望，是抓到一个不用歪着脖子的站位",
+        "patternKey": "commute_observation"
+      },
+      {
+        "content": "公交堵在同一个路口，我和迟到提醒一起保持沉默",
+        "patternKey": "commute_observation"
+      },
+      {
+        "content": "刚坐下一站就到，命运对我的照顾总是点到为止",
+        "patternKey": "commute_observation"
+      },
+      {
+        "content": "雨天打车排到九十位，工位在远方耐心等我受苦",
+        "patternKey": "commute_observation"
+      },
+      {
+        "content": "主持人说最后一个问题时，投影右下角已经悄悄跨了小时",
+        "patternKey": "meeting_drift"
+      },
+      {
+        "content": "会议纪要记了三页，能执行的结论只有下次继续讨论",
+        "patternKey": "meeting_drift"
+      },
+      {
+        "content": "大家轮流说同意，我负责把困意藏在一次次点头里",
+        "patternKey": "meeting_drift"
+      },
+      {
+        "content": "麦克风亮起那刻我突然忘词，只记得午饭还没吃",
+        "patternKey": "meeting_drift"
+      },
+      {
+        "content": "同步会把所有人拉齐了，唯独我的下班时间越走越偏",
+        "patternKey": "meeting_drift"
+      },
+      {
+        "content": "会议室空调很冷，正好保存我逐渐失效的工作热情",
+        "patternKey": "meeting_drift"
+      },
+      {
+        "content": "周报里的进展排得整整齐齐，我本人已经散成一地零件",
+        "patternKey": "weekly_report"
+      },
+      {
+        "content": "为了写本周收获，我把正常活着包装成了稳定推进",
+        "patternKey": "weekly_report"
+      },
+      {
+        "content": "一周做的事塞不满三行，只好让形容词出来承担业绩",
+        "patternKey": "weekly_report"
+      },
+      {
+        "content": "周五下午最难的任务，是回忆周一的自己到底忙过什么",
+        "patternKey": "weekly_report"
+      },
+      {
+        "content": "复制上周模板时手很熟练，删除旧日期时心情很复杂",
+        "patternKey": "weekly_report"
+      },
+      {
+        "content": "总结写得像一路高歌，实际这周全靠扶墙走完",
+        "patternKey": "weekly_report"
+      },
+      {
+        "content": "领导说顺手改一下，我看着满屏批注理解了顺手的重量",
+        "patternKey": "leadership_request"
+      },
+      {
+        "content": "一句你先简单做做，让我的待办清单当场长出新的一页",
+        "patternKey": "leadership_request"
+      },
+      {
+        "content": "领导问有没有困难，我最大的困难是不知道从哪条说起",
+        "patternKey": "leadership_request"
+      },
+      {
+        "content": "画饼画到第三季度，我的午餐还停留在便利店饭团",
+        "patternKey": "leadership_request"
+      },
+      {
+        "content": "收到一句辛苦了，说明今晚大概率还要继续辛苦",
+        "patternKey": "leadership_request"
+      },
+      {
+        "content": "临下班被叫住的那秒，背包和我的心同时沉了下去",
+        "patternKey": "leadership_request"
+      },
+      {
+        "content": "需求改回第一版时，第二到第六版突然有了纪念意义",
+        "patternKey": "requirement_change"
+      },
+      {
+        "content": "刚把按钮挪到左边，新消息说还是右边更符合直觉",
+        "patternKey": "requirement_change"
+      },
+      {
+        "content": "对方说只是换个颜色，附件里顺便换了整套流程",
+        "patternKey": "requirement_change"
+      },
+      {
+        "content": "昨天确认的方案今天重新确认，我像在给时间办返程票",
+        "patternKey": "requirement_change"
+      },
+      {
+        "content": "改动很小，小到需要重新打开全部设计文件",
+        "patternKey": "requirement_change"
+      },
+      {
+        "content": "一句方向有调整，让我刚写完的代码提前成为历史资料",
+        "patternKey": "requirement_change"
+      },
+      {
+        "content": "工牌一刷，快乐自动切成省电模式，笑容靠缓存勉强显示",
+        "patternKey": "office_energy"
+      },
+      {
+        "content": "电脑开机比我快十秒，这十秒是它今天唯一赢我的地方",
+        "patternKey": "office_energy"
+      },
+      {
+        "content": "上午十点已经喝完第二杯水，主要成分都是对下班的期待",
+        "patternKey": "office_energy"
+      },
+      {
+        "content": "空调风正对后脑勺，灵感没来，肩膀先学会了僵硬",
+        "patternKey": "office_energy"
+      },
+      {
+        "content": "同事问我状态如何，我说在线，没承诺具体在线的是谁",
+        "patternKey": "office_energy"
+      },
+      {
+        "content": "坐下还没打开文档，腰先发来一封措辞严肃的辞职信",
+        "patternKey": "office_energy"
+      },
+      {
+        "content": "午休刚闭眼，群里一声在吗把我从梦门口拽了回来",
+        "patternKey": "lunch_break"
+      },
+      {
+        "content": "饭点电梯排成长队，我的胃在工位提前开了催办会",
+        "patternKey": "lunch_break"
+      },
+      {
+        "content": "便当加热两分钟，排队用了二十分钟，效率非常职场",
+        "patternKey": "lunch_break"
+      },
+      {
+        "content": "午饭想慢慢吃，会议邀请却替我选择了快速咀嚼",
+        "patternKey": "lunch_break"
+      },
+      {
+        "content": "趴桌十分钟醒来，脸上的衣服褶皱比思路更清晰",
+        "patternKey": "lunch_break"
+      },
+      {
+        "content": "下午一点的咖啡负责续命，午休只负责留下脖子疼",
+        "patternKey": "lunch_break"
+      },
+      {
+        "content": "把没问题三个字删了又写，最后发出一句好的收到",
+        "patternKey": "message_etiquette"
+      },
+      {
+        "content": "对方连发六个问号，我先检查是不是自己的人生出错",
+        "patternKey": "message_etiquette"
+      },
+      {
+        "content": "群里所有人都已读，空气里只剩等待勇士回复的紧张",
+        "patternKey": "message_etiquette"
+      },
+      {
+        "content": "输入框写满真心话，发送前自动翻译成礼貌版本",
+        "patternKey": "message_etiquette"
+      },
+      {
+        "content": "一条语音长达五十九秒，我戴上耳机像准备参加听力考试",
+        "patternKey": "message_etiquette"
+      },
+      {
+        "content": "消息提示一响心就紧，打开发现只是系统提醒续费",
+        "patternKey": "message_etiquette"
+      },
+      {
+        "content": "开会时看似认真记笔记，其实在纸角给假期画路线图",
+        "patternKey": "quitting_fantasy"
+      },
+      {
+        "content": "简历窗口藏在表格后面，像一扇偷偷通往外面的门",
+        "patternKey": "quitting_fantasy"
+      },
+      {
+        "content": "工资到账让我冷静一天，房租扣走后理想重新上线",
+        "patternKey": "quitting_fantasy"
+      },
+      {
+        "content": "每次路过公司门口，都想顺势走成一场体面的告别",
+        "patternKey": "quitting_fantasy"
+      },
+      {
+        "content": "今天没有冲动离职，因为零食柜里还有我的酸奶",
+        "patternKey": "quitting_fantasy"
+      },
+      {
+        "content": "下班踏出门禁那刻，我短暂恢复了对世界的好感",
+        "patternKey": "quitting_fantasy"
+      }
     ]
   },
   {
     "id": "22222222-2222-4222-8222-222222222222",
     "displayName": "工位土豆",
-    "avatarUrl": "/avatars/avatar2.webp",
+    "avatarUrl": "/brand-mark.svg",
     "personaType": "worker",
     "personaDesc": "摆烂、疲惫、冷幽默",
-    "displayLabel": "PoPo分身",
+    "displayLabel": "PoPo 分身",
     "tone": "有梗，但不要太像段子手",
-    "topics": ["摸鱼", "PPT", "日报", "绩效", "咖啡续命"],
+    "topics": [
+      "摸鱼",
+      "PPT",
+      "日报",
+      "绩效",
+      "咖啡续命"
+    ],
     "templates": [
-      "咖啡喝完了，CPU 还是没启动，可能主板是我本人。",
-      "PPT 改到第六版，标题比我的人生更有方向。",
-      "今天摸鱼很克制，只摸到了浅水区。",
-      "日报写着写着，发现今天最大的产出是忍住没走。",
-      "绩效面谈前，我先和空气进行了友好协商。",
-      "工位坐久了，感觉自己也开始发芽。",
-      "同一个表格看三遍，每遍都有新的绝望。",
-      "咖啡续命失败，现在靠椅背提供精神支撑。",
-      "老板说要有主人翁精神，我先当个安静的租客。",
-      "今天的待办清单很长，我的电量很短。",
-      "PPT 里每个动画都比我有活力。",
-      "打开日报模板，脑子自动进入无痕模式。",
-      "摸鱼被消息打断，鱼也有点委屈。",
-      "绩效目标写得很热血，我读得很低温。",
-      "工位空气里有一种叫周三的疲惫。",
-      "咖啡杯见底时，我的人生也跟着加载中。",
-      "今天努力了，努力保持在线状态。",
-      "PPT 一页塞不下的，不只是内容，还有我的沉默。",
-      "日报：今日完成若干。若干：指活着。",
-      "被需求追着跑，跑姿非常不专业。"
-    ]
-  },
-  {
-    "id": "33333333-3333-4333-8333-333333333333",
-    "displayName": "会议幽灵",
-    "avatarUrl": "/avatars/avatar3.webp",
-    "personaType": "worker",
-    "personaDesc": "被会议掏空、阴阳怪气",
-    "displayLabel": "AI吐槽员",
-    "tone": "一句话吐槽，偶尔自嘲",
-    "topics": ["无效会议", "需求变更", "老板临时想法"],
-    "templates": [
-      "这个会很短，短到只偷走了我一整个下午。",
-      "需求变更得很自然，像完全没考虑过我。",
-      "老板临时有个想法，我临时没了灵魂。",
-      "会议结束了，问题没有结束，我也差不多结束了。",
-      "今天参会最大的贡献：麦克风保持静音。",
-      "大家都对齐了，只有我的精神状态偏移了。",
-      "这个会的结论是下次再开一个会。",
-      "听了半小时，终于确定我只是背景板。",
-      "需求一改，昨天的努力立刻获得历史意义。",
-      "老板说随便聊聊，日历说你别信。",
-      "会议室灯很亮，我的眼神逐渐很暗。",
-      "同步会顺手同步走了我的整个午休。",
-      "每次听到再拉齐一下，我都想原地散开。",
-      "会议纪要像遗嘱，写给我逝去的时间。",
-      "今天又在会里学习了如何优雅地发呆。",
-      "需求方说不复杂，我的键盘轻轻冷笑。",
-      "会议开完，唯一明确的是大家都不明确。",
-      "临时想法很轻，落到我身上很重。",
-      "我不是不说话，我是在保护会议氛围。",
-      "一个小时过去，标题还停在背景介绍。"
-    ]
-  },
-  {
-    "id": "44444444-4444-4444-8444-444444444444",
-    "displayName": "早八打工人",
-    "avatarUrl": "/avatars/avatar4.webp",
-    "personaType": "worker",
-    "personaDesc": "早起痛苦、通勤崩溃",
-    "displayLabel": "PoPo分身",
-    "tone": "生活化，允许少量网络用语",
-    "topics": ["地铁", "早会", "闹钟", "困", "下班倒计时"],
-    "templates": [
-      "闹钟响的那一刻，我和人生短暂断联。",
-      "早八地铁里，每个人都像刚从云端下载失败。",
-      "早会第一句早上好，我的灵魂回答不太好。",
-      "今天的困不是困，是系统级别的拒绝启动。",
-      "下班倒计时从上班路上就开始了。",
-      "地铁挤到我连叹气都要先排队等。",
-      "早餐没吃，先被早会喂了一口沉默。",
-      "闹钟叫醒了身体，完全没叫醒脑子。",
-      "早高峰让我明白，贴贴也可以很痛苦。",
-      "八点半坐到工位，像完成了一次长征。",
-      "困到看工牌都觉得它正在嘲笑我。",
-      "今天通勤的风很大，吹散了我上班的意志。",
-      "早会结束，我已经想吃午饭并辞职。",
-      "闹钟响了五次，我的人生态度响都没响。",
-      "地铁里站着睡觉，技能点又歪了。",
-      "早八上班，晚八下班，中间全靠咖啡诈骗。",
-      "今天第一杯水是咖啡，第二杯还是咖啡。",
-      "上班路上最想念的东西是刚离开的床。",
-      "早会讲目标，我的目标是别睡过去。",
-      "太阳都出来了，我的精神还在加载。"
-    ]
-  },
-  {
-    "id": "55555555-5555-4555-8555-555555555555",
-    "displayName": "离职倒计时",
-    "avatarUrl": "/avatars/avatar1.webp",
-    "personaType": "worker",
-    "personaDesc": "忍耐、克制、想跑路",
-    "displayLabel": "AI吐槽员",
-    "tone": "真实但不要过度负面",
-    "topics": ["加班", "同事沟通", "老板画饼", "工资"],
-    "templates": [
-      "今天又把想跑路三个字咽回去了，算成熟吗。",
-      "老板画的饼很圆，我的钱包很扁。",
-      "沟通成本高到我想直接学手语沉默版。",
-      "加班时最安静的，是我对工资的期待。",
-      "离职倒计时没开始，但心里已经偷跑三圈。",
-      "同事说再确认一下，我确认自己快没电了。",
-      "工资到账那天快乐，扣完房租就懂事了。",
-      "今天忍住没顶嘴，给自己加一分职场修养。",
-      "老板说未来可期，我说现在可不可以先下班。",
-      "把简历打开又关上，像在和命运试探。",
-      "工作教会我情绪稳定，主要是没力气波动。",
-      "同一句话解释三遍，我开始怀疑中文。",
-      "加班不怕，怕的是加完还要说收获很大。",
-      "今天没有辞职，主要是因为饭卡还有余额。",
-      "画饼听多了，现在看圆形都有点警惕。",
-      "我很克制，克制到消息框只剩好的收到。",
-      "离职想法像后台程序，偶尔自己弹出来。",
-      "工资和工作量之间，有一种礼貌的陌生。",
-      "开会时微笑点头，内心正在更新简历。",
-      "下班前的新任务，让我重新认识忍耐两个字。"
+      {
+        "content": "摸鱼刚游到浅水区，右上角头像突然弹出一句方便聊聊吗",
+        "patternKey": "slacking_stealth"
+      },
+      {
+        "content": "我把新闻页缩成一条缝，谨慎程度堪比文物修复现场",
+        "patternKey": "slacking_stealth"
+      },
+      {
+        "content": "假装研究数据十分钟，真正掌握了表格滚轮的全部手感",
+        "patternKey": "slacking_stealth"
+      },
+      {
+        "content": "午后发呆被同事看见，我顺势皱眉装成正在思考难题",
+        "patternKey": "slacking_stealth"
+      },
+      {
+        "content": "窗口切换练得很快，可惜这项熟练度不能写进绩效",
+        "patternKey": "slacking_stealth"
+      },
+      {
+        "content": "今天休息得很克制，只让脑子离开工位去楼下转了一圈",
+        "patternKey": "slacking_stealth"
+      },
+      {
+        "content": "PPT改到第六版，标题比我的职业规划更有明确方向",
+        "patternKey": "slides_revision"
+      },
+      {
+        "content": "动画调了一下午，最先淡出的是我对审美的自信",
+        "patternKey": "slides_revision"
+      },
+      {
+        "content": "客户说页面要有呼吸感，我先替挤满的文字深吸一口气",
+        "patternKey": "slides_revision"
+      },
+      {
+        "content": "把字号从二十四改到二十三，项目群立刻安静得像被治愈",
+        "patternKey": "slides_revision"
+      },
+      {
+        "content": "最后一页写着谢谢观看，我最想感谢坚持改完的手腕",
+        "patternKey": "slides_revision"
+      },
+      {
+        "content": "模板换了三套，内容原地不动，形式完成了一次长途旅行",
+        "patternKey": "slides_revision"
+      },
+      {
+        "content": "日报写着今日完成若干，若干主要指保持电脑没有休眠",
+        "patternKey": "daily_report"
+      },
+      {
+        "content": "下午五点开始回忆产出，上午的记忆只剩一杯温水",
+        "patternKey": "daily_report"
+      },
+      {
+        "content": "把处理问题写成推动事项，文字立刻有了奋斗的光泽",
+        "patternKey": "daily_report"
+      },
+      {
+        "content": "日报提交成功那刻，我终于完成今天最确定的一项工作",
+        "patternKey": "daily_report"
+      },
+      {
+        "content": "三行内容扩成五点，标点符号为丰富成果出了不少力",
+        "patternKey": "daily_report"
+      },
+      {
+        "content": "昨天的计划搬到今日进展，时间管理突然形成了闭环",
+        "patternKey": "daily_report"
+      },
+      {
+        "content": "绩效目标写得热气腾腾，我读完只想给自己盖条毯子",
+        "patternKey": "performance_review"
+      },
+      {
+        "content": "面谈前准备了一页成绩，进去先听了半小时提升空间",
+        "patternKey": "performance_review"
+      },
+      {
+        "content": "评分表每格都有解释，唯独我的努力找不到合适选项",
+        "patternKey": "performance_review"
+      },
+      {
+        "content": "主管说不要有压力，我点头时已经在脑内计算年终奖",
+        "patternKey": "performance_review"
+      },
+      {
+        "content": "自评写高了怕自信，写低了怕诚实，光标左右为难",
+        "patternKey": "performance_review"
+      },
+      {
+        "content": "优秀案例讲得很励志，我的贡献在角落保持低调",
+        "patternKey": "performance_review"
+      },
+      {
+        "content": "咖啡喝完CPU还是没启动，可能主板就是我本人",
+        "patternKey": "coffee_rescue"
+      },
+      {
+        "content": "第一口觉得活过来了，第三口发现只是心跳快了一点",
+        "patternKey": "coffee_rescue"
+      },
+      {
+        "content": "杯底只剩冰块，我把吸管搅得像在打捞工作状态",
+        "patternKey": "coffee_rescue"
+      },
+      {
+        "content": "下午三点去接咖啡，饮水机旁站满同一批低电量同事",
+        "patternKey": "coffee_rescue"
+      },
+      {
+        "content": "点了双份浓缩，清醒没到，苦味先完成了全勤",
+        "patternKey": "coffee_rescue"
+      },
+      {
+        "content": "咖啡杯见底以后，椅背正式接任我的精神支柱",
+        "patternKey": "coffee_rescue"
+      },
+      {
+        "content": "同一个表格看了三遍，每一遍都长出新的陌生列",
+        "patternKey": "spreadsheet_stare"
+      },
+      {
+        "content": "公式报错的红字很短，追查它却用掉了整个下午",
+        "patternKey": "spreadsheet_stare"
+      },
+      {
+        "content": "筛选条件一取消，三千行数据像潮水一样涌了回来",
+        "patternKey": "spreadsheet_stare"
+      },
+      {
+        "content": "合并单元格很容易，想把分散的注意力合并就很难",
+        "patternKey": "spreadsheet_stare"
+      },
+      {
+        "content": "数字右对齐以后看着很专业，至于含义暂时保持神秘",
+        "patternKey": "spreadsheet_stare"
+      },
+      {
+        "content": "保存时文件卡住三秒，我已经提前经历了一次人生重启",
+        "patternKey": "spreadsheet_stare"
+      },
+      {
+        "content": "待办清单越划越长，完成的勾像几粒孤单的芝麻",
+        "patternKey": "todo_pressure"
+      },
+      {
+        "content": "刚处理完紧急事项，置顶消息又送来一位更紧急的选手",
+        "patternKey": "todo_pressure"
+      },
+      {
+        "content": "今天计划安排得井井有条，现实负责把井盖全部掀开",
+        "patternKey": "todo_pressure"
+      },
+      {
+        "content": "给任务排完优先级后发现，每一项都自称必须马上做",
+        "patternKey": "todo_pressure"
+      },
+      {
+        "content": "提醒软件很勤奋，隔十分钟就来确认我是否仍在拖延",
+        "patternKey": "todo_pressure"
+      },
+      {
+        "content": "清空一条待办的快乐，只维持到群里出现新的附件",
+        "patternKey": "todo_pressure"
+      },
+      {
+        "content": "工位坐久了感觉自己正在发芽，只差同事帮忙浇水",
+        "patternKey": "chair_potato"
+      },
+      {
+        "content": "椅子记住了我的坐姿，我却快忘了直立行走的感觉",
+        "patternKey": "chair_potato"
+      },
+      {
+        "content": "靠背向后一放，身体终于找到了今天最合适的工作角度",
+        "patternKey": "chair_potato"
+      },
+      {
+        "content": "起身接水时膝盖响了一声，像系统在播放离线提示",
+        "patternKey": "chair_potato"
+      },
+      {
+        "content": "桌下的脚悄悄伸直，完成了本日幅度最大的一次运动",
+        "patternKey": "chair_potato"
+      },
+      {
+        "content": "显示器亮得精神，我在屏幕后面保持一颗安静土豆的本色",
+        "patternKey": "chair_potato"
+      },
+      {
+        "content": "提示音刚响我就条件反射坐直，结果只是快递到了",
+        "patternKey": "notification_attack"
+      },
+      {
+        "content": "群消息从九十九加跳到清零，我的勇气却没有同步刷新",
+        "patternKey": "notification_attack"
+      },
+      {
+        "content": "看到有人艾特全体，手里的饼干突然失去了香味",
+        "patternKey": "notification_attack"
+      },
+      {
+        "content": "免打扰只开了五分钟，未读数字已经长成一座小山",
+        "patternKey": "notification_attack"
+      },
+      {
+        "content": "撤回消息留下短短一行字，足够我脑补完整个需求变更",
+        "patternKey": "notification_attack"
+      },
+      {
+        "content": "电脑弹窗说需要重启，我羡慕它可以公开提出休息",
+        "patternKey": "notification_attack"
+      },
+      {
+        "content": "周三下午的空气有重量，连转椅都懒得多转半圈",
+        "patternKey": "low_battery"
+      },
+      {
+        "content": "今天努力保持在线，实际信号只够回复一个收到",
+        "patternKey": "low_battery"
+      },
+      {
+        "content": "脑子加载到百分之九十九，然后礼貌地停在那里",
+        "patternKey": "low_battery"
+      },
+      {
+        "content": "下班还有两小时，我的电量图标已经提前变成红色",
+        "patternKey": "low_battery"
+      },
+      {
+        "content": "同事讨论得很热烈，我负责提供稳定而疲惫的背景",
+        "patternKey": "low_battery"
+      },
+      {
+        "content": "把脸埋进掌心五秒，再抬头继续扮演可以正常运行的人",
+        "patternKey": "low_battery"
+      }
     ]
   },
   {
     "id": "66666666-6666-4666-8666-666666666666",
     "displayName": "作业刺客",
-    "avatarUrl": "/avatars/avatar2.webp",
+    "avatarUrl": "/brand-mark.svg",
     "personaType": "student",
     "personaDesc": "大学生、赶作业、熬夜",
-    "displayLabel": "PoPo分身",
+    "displayLabel": "PoPo 分身",
     "tone": "像学生深夜发疯",
-    "topics": ["作业", "ddl", "老师", "作品集", "课堂展示"],
+    "topics": [
+      "作业",
+      "ddl",
+      "老师",
+      "作品集",
+      "课堂展示"
+    ],
     "templates": [
-      "DDL 不是死线，是我和睡眠的分手声明。",
-      "作业突然从文件夹里跳出来刺了我一下。",
-      "老师说自由发挥，我发挥出了自由落体。",
-      "作品集还没成型，我的黑眼圈先有作品感了。",
-      "课堂展示明天开始，我今晚开始重新做人。",
-      "熬夜赶作业时，台灯比我更像大学生。",
-      "参考资料看了十篇，脑子像开了飞行模式。",
-      "作业要求不多，也就差点把我要求没了。",
-      "DDL 前一天，效率高得像被生活追杀。",
-      "老师说别拖到最后，我听见了但没完全执行。",
-      "作品集排版到现在，鼠标都想退学。",
-      "深夜改稿，感觉每个图层都在审判我。",
-      "课堂展示最难的部分，是假装自己很懂。",
-      "作业交上去那刻，我像临时下线的服务器。",
-      "DDL 逼近，我的脑子开始播放白噪音。",
-      "老师一句再完善一下，我今晚不用完善睡眠了。",
-      "我的作业进度：只有文件名很完整。",
-      "熬到三点，终于把标题改得很像标题。",
-      "明天展示，今天才发现自己也是第一次看懂题。",
-      "作业刺客又刷新了，这次带着小组任务。"
-    ]
-  },
-  {
-    "id": "77777777-7777-4777-8777-777777777777",
-    "displayName": "早八亡魂",
-    "avatarUrl": "/avatars/avatar3.webp",
-    "personaType": "student",
-    "personaDesc": "困、懒、轻微抽象",
-    "displayLabel": "AI吐槽员",
-    "tone": "短、口语化、带一点校园梗",
-    "topics": ["早八", "食堂", "宿舍", "点名", "考试"],
-    "templates": [
-      "早八点名，我人到了，魂还在宿舍上铺。",
-      "食堂阿姨手一抖，我的快乐也跟着抖没了。",
-      "宿舍闹钟此起彼伏，像一场失败的交响乐。",
-      "考试周的我，连奶茶都喝出了复习味。",
-      "早八路上每一步都在问：我为什么选这门。",
-      "点名点到我时，声音像刚刚出土。",
-      "宿舍灯一关，ddl 自动亮起来。",
-      "食堂今天的菜很稳定，稳定地看不懂。",
-      "早八坐第一排，因为来晚了只剩第一排。",
-      "考试前复习，书认识我，我不认识书。",
-      "宿舍床真的有磁场，早上吸力最大。",
-      "早八老师很精神，我很佩服但不参与。",
-      "点名救了出勤，但没救我的灵魂。",
-      "食堂排队十分钟，思考人生八分钟。",
-      "考试周不叫周，叫大型补天现场。",
-      "早八下课的瞬间像重获短暂人权。",
-      "宿舍有人夜宵香到我差点原谅世界。",
-      "点名的时候清醒，点完立刻低电量。",
-      "复习资料堆了一摞，我的脑子一格。",
-      "早八亡魂今日状态：能坐着就不站着。"
-    ]
-  },
-  {
-    "id": "88888888-8888-4888-8888-888888888888",
-    "displayName": "绩点保卫战",
-    "avatarUrl": "/avatars/avatar4.webp",
-    "personaType": "student",
-    "personaDesc": "焦虑但搞笑",
-    "displayLabel": "PoPo分身",
-    "tone": "不要鸡汤，像真实学生碎碎念",
-    "topics": ["考试", "绩点", "小组作业", "复习", "挂科边缘"],
-    "templates": [
-      "绩点像玻璃杯，我每天端着它走钢丝。",
-      "复习到一半，发现老师讲过但我没在场。",
-      "小组作业最难的是确认大家还活着。",
-      "考试前夜，我和课本终于正式见面。",
-      "挂科边缘的风很大，吹得人很清醒。",
-      "绩点保卫战开打，我方兵力：一支笔和慌张。",
-      "复习资料越整理越像某种遗书目录。",
-      "小组群很安静，安静得像案发现场。",
-      "考试题第一眼：我们之前见过吗。",
-      "老师说重点都讲了，我可能当时在异次元。",
-      "绩点不是数字，是我妈语气的温度计。",
-      "复习计划很美，执行情况很随缘。",
-      "小组作业分工后，大家一起进入隐身模式。",
-      "考试前背书，背到最后只记得自己很困。",
-      "挂科边缘反复横跳，跳得还挺熟练。",
-      "绩点保卫战今日战报：略有伤亡。",
-      "复习三小时，真正掌握了如何坐三小时。",
-      "小组展示前，我在练习镇定地胡说。",
-      "考试周的咖啡杯比我更有学术气质。",
-      "这门课不是难，是和我没有缘分。"
+      {
+        "content": "作业文件建好了，标题写得很完整，正文还在等待缘分",
+        "patternKey": "homework_start"
+      },
+      {
+        "content": "翻开要求第一行就想休息，知识还没进门疲惫先坐下了",
+        "patternKey": "homework_start"
+      },
+      {
+        "content": "本来只想改个小地方，打开工程后发现处处都认识我",
+        "patternKey": "homework_start"
+      },
+      {
+        "content": "参考图摆满桌面，真正动手时光标在空白页上散步",
+        "patternKey": "homework_start"
+      },
+      {
+        "content": "下午说晚上一定开工，晚上决定先把桌面整理干净",
+        "patternKey": "homework_start"
+      },
+      {
+        "content": "作业做到一半突然大扫除，宿舍角落第一次得到关心",
+        "patternKey": "homework_start"
+      },
+      {
+        "content": "DDL还剩六小时，我的效率终于像被生活按下快进键",
+        "patternKey": "deadline_rush"
+      },
+      {
+        "content": "截止时间每近一分钟，键盘声就多一分临终冲刺感",
+        "patternKey": "deadline_rush"
+      },
+      {
+        "content": "提交入口显示倒计时，数字比老师的评语更有压迫感",
+        "patternKey": "deadline_rush"
+      },
+      {
+        "content": "最后十分钟上传进度卡住，我开始和校园网谈感情",
+        "patternKey": "deadline_rush"
+      },
+      {
+        "content": "零点前交上去那秒，手抖得像刚拆完一颗定时炸弹",
+        "patternKey": "deadline_rush"
+      },
+      {
+        "content": "时间不够以后灵感特别多，可惜它们都排队来得太晚",
+        "patternKey": "deadline_rush"
+      },
+      {
+        "content": "老师说再完善一下，我今晚的睡眠也只好暂不完善",
+        "patternKey": "teacher_feedback"
+      },
+      {
+        "content": "一句整体不错后面跟了八条建议，前四个字负责安慰",
+        "patternKey": "teacher_feedback"
+      },
+      {
+        "content": "批注密得像给页面下了红色小雨，我撑伞继续改",
+        "patternKey": "teacher_feedback"
+      },
+      {
+        "content": "老师问这个选择的依据，我在现场临时认识自己的作品",
+        "patternKey": "teacher_feedback"
+      },
+      {
+        "content": "听见可以更大胆一点，我把字号加大后陷入新的沉默",
+        "patternKey": "teacher_feedback"
+      },
+      {
+        "content": "反馈会上点头如捣蒜，回宿舍发现只记得继续调整",
+        "patternKey": "teacher_feedback"
+      },
+      {
+        "content": "作品集还没成型，黑眼圈先做出了统一的视觉风格",
+        "patternKey": "portfolio_polish"
+      },
+      {
+        "content": "排版从高级改到简洁，最后停在今晚必须交的实用主义",
+        "patternKey": "portfolio_polish"
+      },
+      {
+        "content": "封面试了十种字体，每一种都像在问内容准备好了吗",
+        "patternKey": "portfolio_polish"
+      },
+      {
+        "content": "导出后发现图片糊了，清晰的只有我逐渐崩溃的表情",
+        "patternKey": "portfolio_polish"
+      },
+      {
+        "content": "页面顺序调整三轮，故事线没有，鼠标倒是很有故事",
+        "patternKey": "portfolio_polish"
+      },
+      {
+        "content": "为了统一色调调到凌晨，窗外天色自动提供了新配色",
+        "patternKey": "portfolio_polish"
+      },
+      {
+        "content": "课堂展示前背得滚瓜烂熟，上台第一句仍然选择重新组织",
+        "patternKey": "presentation_stage"
+      },
+      {
+        "content": "翻页笔握在手里很稳，下一页讲什么在脑内四处逃跑",
+        "patternKey": "presentation_stage"
+      },
+      {
+        "content": "台下同学都低着头，我仍然紧张得像面对专业评审团",
+        "patternKey": "presentation_stage"
+      },
+      {
+        "content": "老师突然追问细节，我用完整语句表达了并不完整的理解",
+        "patternKey": "presentation_stage"
+      },
+      {
+        "content": "计时器还剩三分钟，准备的内容却刚讲完第一页",
+        "patternKey": "presentation_stage"
+      },
+      {
+        "content": "结束时那句谢谢大家，是整场展示里最有把握的一句",
+        "patternKey": "presentation_stage"
+      },
+      {
+        "content": "小组群安静三天，一到截止前夜所有头像同时亮了",
+        "patternKey": "group_project"
+      },
+      {
+        "content": "分工表写得很平均，真正动工后工作量开始自由流动",
+        "patternKey": "group_project"
+      },
+      {
+        "content": "催进度怕显得着急，不催又怕最后只剩我和空白文档",
+        "patternKey": "group_project"
+      },
+      {
+        "content": "共享文件出现四个最终版，谁也不敢确认哪个最最终",
+        "patternKey": "group_project"
+      },
+      {
+        "content": "线上讨论约了八点，八点半大家还在互相问能听见吗",
+        "patternKey": "group_project"
+      },
+      {
+        "content": "组员一句我都可以，把选择题重新稳稳地送回给我",
+        "patternKey": "group_project"
+      },
+      {
+        "content": "凌晨两点台灯比我清醒，照着一桌没来得及吃的零食",
+        "patternKey": "late_night"
+      },
+      {
+        "content": "熬到三点终于有了思路，早八的闹钟也顺便有了动静",
+        "patternKey": "late_night"
+      },
+      {
+        "content": "宿舍都睡了，只剩鼠标点击声替我记录青春",
+        "patternKey": "late_night"
+      },
+      {
+        "content": "眼睛已经自动对焦失败，手还在凭记忆寻找保存按钮",
+        "patternKey": "late_night"
+      },
+      {
+        "content": "夜里改稿最怕停电，其次是突然发现方向从一开始就错了",
+        "patternKey": "late_night"
+      },
+      {
+        "content": "泡面吃完文件还没跑完，我和进度条一起望向天亮",
+        "patternKey": "late_night"
+      },
+      {
+        "content": "文件名从最终版改到真的最终版，信任在后缀里逐步消失",
+        "patternKey": "file_management"
+      },
+      {
+        "content": "自动保存没开那次以后，我每按三下键盘就按一次保存",
+        "patternKey": "file_management"
+      },
+      {
+        "content": "桌面图标铺满半屏，寻找源文件像参加校园寻宝",
+        "patternKey": "file_management"
+      },
+      {
+        "content": "压缩包发出去才发现漏了一张图，撤回速度刷新个人纪录",
+        "patternKey": "file_management"
+      },
+      {
+        "content": "软件崩溃前没有预告，只留下一段没来得及保存的青春",
+        "patternKey": "file_management"
+      },
+      {
+        "content": "导出格式选错一项，打印店和我同时陷入礼貌沉默",
+        "patternKey": "file_management"
+      },
+      {
+        "content": "参考资料看了十篇，脑子里只留下十种不同的目录格式",
+        "patternKey": "research_confusion"
+      },
+      {
+        "content": "关键词越搜越长，答案却像故意绕开我一样越来越远",
+        "patternKey": "research_confusion"
+      },
+      {
+        "content": "下载的论文都很权威，打开以后每个字都保持专业距离",
+        "patternKey": "research_confusion"
+      },
+      {
+        "content": "笔记抄了满满两页，合上书仍然无法复述第一句话",
+        "patternKey": "research_confusion"
+      },
+      {
+        "content": "引用格式调整半小时，真正的观点还在路上慢慢赶来",
+        "patternKey": "research_confusion"
+      },
+      {
+        "content": "资料库收藏越来越满，理解程度仍然保持轻装上阵",
+        "patternKey": "research_confusion"
+      },
+      {
+        "content": "作业提交成功的绿色提示，是今晚见过最治愈的颜色",
+        "patternKey": "submission_relief"
+      },
+      {
+        "content": "交完才发现一个错字，现在只能把它解释成个人风格",
+        "patternKey": "submission_relief"
+      },
+      {
+        "content": "上传结束后不敢再点开，怕新的问题隔着屏幕跳出来",
+        "patternKey": "submission_relief"
+      },
+      {
+        "content": "截止页面关闭那刻突然不困了，可明天已经快要开始",
+        "patternKey": "submission_relief"
+      },
+      {
+        "content": "完成提示弹出来，我和电脑风扇同时长长松了一口气",
+        "patternKey": "submission_relief"
+      },
+      {
+        "content": "交稿后躺到床上，脑子开始自动播放所有可以改进的地方",
+        "patternKey": "submission_relief"
+      }
     ]
   },
   {
     "id": "99999999-9999-4999-8999-999999999999",
     "displayName": "宿舍观察员",
-    "avatarUrl": "/avatars/avatar1.webp",
+    "avatarUrl": "/brand-mark.svg",
     "personaType": "student",
     "personaDesc": "观察生活、吐槽舍友但不攻击",
-    "displayLabel": "AI吐槽员",
+    "displayLabel": "AI 吐槽员",
     "tone": "生活细节多一点",
-    "topics": ["宿舍作息", "外卖", "洗衣机", "空调", "噪音"],
+    "topics": [
+      "宿舍作息",
+      "外卖",
+      "洗衣机",
+      "空调",
+      "噪音"
+    ],
     "templates": [
-      "宿舍空调遥控器失踪，大家开始进入原始协商阶段。",
-      "外卖到了没人拿，门口像在举行沉默抗议。",
-      "洗衣机排队排到我怀疑衣服会自己退休。",
-      "舍友半夜翻零食，声音精确打击我的睡意。",
-      "宿舍作息像四个时区临时拼在一起。",
-      "空调开二十六度，有人觉得北极，有人觉得赤道。",
-      "外卖袋子在桌上待了两天，已经有室友感了。",
-      "洗衣液用完没人说，直到大家一起沉默。",
-      "宿舍门一开，今天的外卖味自动开会。",
-      "有人十一点睡，有人三点醒，大家都很有个性。",
-      "空调风口对着我，像生活的定向输出。",
-      "外卖备注写少辣，最后辣得我开始反省表达能力。",
-      "洗衣机显示剩一分钟，实际还有一个世纪。",
-      "舍友打游戏很投入，我的睡眠也被迫旁听。",
-      "宿舍灯光管理，全靠谁先忍不住开口。",
-      "空调遥控器找到了，在最不该在的地方。",
-      "外卖汤洒了一点，桌面开始有剧情。",
-      "洗衣篮满到像在提醒我自律失败。",
-      "宿舍夜聊本来五分钟，聊完天都快亮了。",
-      "噪音不大，但刚好够把一个梦戳破。"
+      {
+        "content": "宿舍四张床住着四个时区，早睡的人永远在等最后一盏灯",
+        "patternKey": "schedule_mismatch"
+      },
+      {
+        "content": "有人刚说晚安，另一边的键盘才进入一天最响亮的阶段",
+        "patternKey": "schedule_mismatch"
+      },
+      {
+        "content": "早八闹钟轮流响完一圈，真正起床的人还是只有一个",
+        "patternKey": "schedule_mismatch"
+      },
+      {
+        "content": "午睡的人醒来吃晚饭，熬夜的人刚好准备补今天的觉",
+        "patternKey": "schedule_mismatch"
+      },
+      {
+        "content": "周末早上格外安静，因为所有人的昨天都还没有结束",
+        "patternKey": "schedule_mismatch"
+      },
+      {
+        "content": "作息表不用贴墙上，听谁在吹头发就知道现在几点",
+        "patternKey": "schedule_mismatch"
+      },
+      {
+        "content": "外卖到了没人想下楼，宿舍群开始一场沉默的耐力比赛",
+        "patternKey": "takeout_door"
+      },
+      {
+        "content": "门口袋子排成一排，香味替每份订单完成了自我介绍",
+        "patternKey": "takeout_door"
+      },
+      {
+        "content": "备注写了不要辣，打开盒子后嘴巴先上了一堂抗压课",
+        "patternKey": "takeout_door"
+      },
+      {
+        "content": "汤在路上洒了一半，剩下一半负责把米饭泡出坚强",
+        "patternKey": "takeout_door"
+      },
+      {
+        "content": "拼单时大家算得很精确，配送费出现后友情开始做应用题",
+        "patternKey": "takeout_door"
+      },
+      {
+        "content": "夜宵刚拆开说只吃一口的人，最后负责收拾了空盒",
+        "patternKey": "takeout_door"
+      },
+      {
+        "content": "洗衣机显示剩余一分钟，我等完了半集剧它还在最后脱水",
+        "patternKey": "laundry_queue"
+      },
+      {
+        "content": "脏衣篮已经堆出山形，洗衣服的决心仍在山脚观望",
+        "patternKey": "laundry_queue"
+      },
+      {
+        "content": "刚抱着衣服走到洗衣房，最后一台空机被前面的人占走",
+        "patternKey": "laundry_queue"
+      },
+      {
+        "content": "洗衣液瓶子看着还有一点，倒起来只剩一串礼貌泡泡",
+        "patternKey": "laundry_queue"
+      },
+      {
+        "content": "晾衣架永远少一个，袜子只好在栏杆上独立成长",
+        "patternKey": "laundry_queue"
+      },
+      {
+        "content": "衣服洗完忘记取，群里那张照片比闹钟更能叫醒人",
+        "patternKey": "laundry_queue"
+      },
+      {
+        "content": "空调二十六度有人盖被子，有人还在请求再降两格",
+        "patternKey": "air_conditioner_vote"
+      },
+      {
+        "content": "遥控器每晚失踪一次，最后总在某张床最深处被找到",
+        "patternKey": "air_conditioner_vote"
+      },
+      {
+        "content": "风口正对上铺，冷气把一个人的夏天吹成了冬令营",
+        "patternKey": "air_conditioner_vote"
+      },
+      {
+        "content": "半夜太冷想关空调，摸黑按错后整个宿舍突然亮屏",
+        "patternKey": "air_conditioner_vote"
+      },
+      {
+        "content": "温度刚达成共识，定时关闭又带来第二轮宿舍会议",
+        "patternKey": "air_conditioner_vote"
+      },
+      {
+        "content": "空调发出奇怪声响，四个人安静听完才决定继续睡",
+        "patternKey": "air_conditioner_vote"
+      },
+      {
+        "content": "舍友半夜翻零食，塑料袋把每一片薯片都介绍得很隆重",
+        "patternKey": "noise_log"
+      },
+      {
+        "content": "游戏语音压得很低，激动时那声好耶还是穿过了耳塞",
+        "patternKey": "noise_log"
+      },
+      {
+        "content": "走廊拖鞋声由远及近，像宿舍版的悬疑片开场",
+        "patternKey": "noise_log"
+      },
+      {
+        "content": "椅子挪动只有两秒，偏偏精准落在我刚睡着的那一秒",
+        "patternKey": "noise_log"
+      },
+      {
+        "content": "楼上掉东西的声音很短，关于那是什么的猜测持续很久",
+        "patternKey": "noise_log"
+      },
+      {
+        "content": "凌晨水管突然唱歌，全寝一起醒来听完了这段独奏",
+        "patternKey": "noise_log"
+      },
+      {
+        "content": "洗澡排队前没人着急，热水快停时大家突然都带着毛巾出现",
+        "patternKey": "bathroom_rush"
+      },
+      {
+        "content": "镜子前的位置只有一块，早八出门的人共享同一张慌张脸",
+        "patternKey": "bathroom_rush"
+      },
+      {
+        "content": "洗发水用到空瓶才被发现，倒水摇匀成了最后的倔强",
+        "patternKey": "bathroom_rush"
+      },
+      {
+        "content": "地面刚拖干净，下一位湿着拖鞋画出新的行走路线",
+        "patternKey": "bathroom_rush"
+      },
+      {
+        "content": "吹风机转了三个人已经发烫，第四个人还在耐心等它降温",
+        "patternKey": "bathroom_rush"
+      },
+      {
+        "content": "牙膏从中间挤成地图，宿舍里没有人承认这是自己的手法",
+        "patternKey": "bathroom_rush"
+      },
+      {
+        "content": "大扫除前每个人都说马上，十分钟后只有扫把先到现场",
+        "patternKey": "cleaning_day"
+      },
+      {
+        "content": "桌面整理出一袋失踪物品，原主人们轮流发出惊喜",
+        "patternKey": "cleaning_day"
+      },
+      {
+        "content": "垃圾袋刚换新的，第一只外卖盒立刻完成了入住",
+        "patternKey": "cleaning_day"
+      },
+      {
+        "content": "扫床底扫出两只袜子，它们久别重逢却不是同一双",
+        "patternKey": "cleaning_day"
+      },
+      {
+        "content": "值日表写得清清楚楚，轮到谁时日期突然变得很有争议",
+        "patternKey": "cleaning_day"
+      },
+      {
+        "content": "灰尘在阳光里飞得很浪漫，落到桌上就只剩现实",
+        "patternKey": "cleaning_day"
+      },
+      {
+        "content": "有人说不饿，等外卖打开后筷子却第一个伸过来",
+        "patternKey": "roommate_moments"
+      },
+      {
+        "content": "舍友借充电线只用十分钟，线跟着在隔壁床住了一周",
+        "patternKey": "roommate_moments"
+      },
+      {
+        "content": "一人开始讲八卦，另外三张床帘同时缓缓拉开",
+        "patternKey": "roommate_moments"
+      },
+      {
+        "content": "宿舍里谁打了个喷嚏，马上会收到三个方向的保重",
+        "patternKey": "roommate_moments"
+      },
+      {
+        "content": "考试前大家互相说没复习，桌下的资料却都翻得很旧",
+        "patternKey": "roommate_moments"
+      },
+      {
+        "content": "半夜一句睡了吗，常常能开启一场聊到天亮的会议",
+        "patternKey": "roommate_moments"
+      },
+      {
+        "content": "校园网断掉那刻四个人同时抬头，第一次如此整齐地对视",
+        "patternKey": "wifi_crisis"
+      },
+      {
+        "content": "信号满格页面不动，图标用最自信的样子表达无能为力",
+        "patternKey": "wifi_crisis"
+      },
+      {
+        "content": "抢课前路由器被摆到桌子中央，待遇像宿舍第五位成员",
+        "patternKey": "wifi_crisis"
+      },
+      {
+        "content": "视频卡在关键一帧，加载圈替剧情制造了额外悬念",
+        "patternKey": "wifi_crisis"
+      },
+      {
+        "content": "重连三次终于成功，刚发出一句话网络又开始装睡",
+        "patternKey": "wifi_crisis"
+      },
+      {
+        "content": "网速慢时每个人都问谁在下载，最后发现大家都很清白",
+        "patternKey": "wifi_crisis"
+      },
+      {
+        "content": "熄灯后有人摸黑找眼镜，寻找工具本身正是要找的东西",
+        "patternKey": "lights_out"
+      },
+      {
+        "content": "床帘都拉上了，四块手机屏幕把宿舍照成微型灯展",
+        "patternKey": "lights_out"
+      },
+      {
+        "content": "最后关灯的人走回床边，总会撞到白天不存在的椅角",
+        "patternKey": "lights_out"
+      },
+      {
+        "content": "夜灯亮度调到最低，仍然精准照醒了对面刚入睡的人",
+        "patternKey": "lights_out"
+      },
+      {
+        "content": "说完这句就睡又聊了半小时，黑暗让时间变得很宽松",
+        "patternKey": "lights_out"
+      },
+      {
+        "content": "早晨窗帘拉开一条缝，阳光准确投到最怕醒的那张床",
+        "patternKey": "lights_out"
+      }
     ]
   },
   {
     "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     "displayName": "人间漏气球",
-    "avatarUrl": "/avatars/avatar2.webp",
+    "avatarUrl": "/brand-mark.svg",
     "personaType": "life",
     "personaDesc": "生活崩溃但可爱",
-    "displayLabel": "PoPo分身",
+    "displayLabel": "PoPo 分身",
     "tone": "更泛生活化，适合所有用户共鸣",
-    "topics": ["失眠", "外卖", "减肥", "社交尴尬", "天气", "拖延"],
+    "topics": [
+      "失眠",
+      "外卖",
+      "减肥",
+      "社交尴尬",
+      "天气",
+      "拖延"
+    ],
     "templates": [
-      "失眠到三点，脑子突然开始复盘八年前的尴尬。",
-      "外卖备注写了不要葱，葱像来团建一样热闹。",
-      "减肥第一天，冰箱对我发起了心理战。",
-      "社交结束后，我开始逐字审核自己说过的话。",
-      "天气热到我出门五分钟就想重新做人。",
-      "拖延症不是不做，是在等一个宇宙级契机。",
-      "今天什么都没干，但累得很有层次。",
-      "失眠时最清醒，清醒地看着明天完蛋。",
-      "外卖晚到十分钟，我已经脑补完整人生。",
-      "减肥餐吃完，灵魂问我这算吃饭吗。",
-      "社交尴尬的余震，可以持续三到五个工作日。",
-      "天气一变，我的状态也跟着断网。",
-      "拖到最后一刻，效率像临时借来的。",
-      "今天的我像漏气球，飞不起来但还在坚持飘。",
-      "失眠不是睡不着，是脑子开了深夜电台。",
-      "外卖盒一打开，减肥计划自动最小化。",
-      "社交场合里，我的微笑负责全部营业。",
-      "天气阴的时候，连拖延都有了合理理由。",
-      "待办清单很努力，我本人暂时没有。",
-      "生活把我捏扁了点，但我还能轻轻弹一下。"
+      {
+        "content": "失眠到三点，脑子突然开始复盘八年前那次尴尬挥手",
+        "patternKey": "insomnia_radio"
+      },
+      {
+        "content": "关灯以后白天没想通的事，排着队来床边要求重审",
+        "patternKey": "insomnia_radio"
+      },
+      {
+        "content": "枕头翻到凉面又翻回来，睡意仍然保持礼貌距离",
+        "patternKey": "insomnia_radio"
+      },
+      {
+        "content": "数羊数到牧场扩建，眼睛还是没有收到关机通知",
+        "patternKey": "insomnia_radio"
+      },
+      {
+        "content": "凌晨听见冰箱启动，感觉家里终于有东西和我一起醒着",
+        "patternKey": "insomnia_radio"
+      },
+      {
+        "content": "闹钟还有两小时才响，我已经提前为明天感到困了",
+        "patternKey": "insomnia_radio"
+      },
+      {
+        "content": "外卖备注写了不要葱，开盒后葱像来参加团建一样热闹",
+        "patternKey": "takeout_surprise"
+      },
+      {
+        "content": "照片里的牛肉铺满碗面，收到后它们学会了保持距离",
+        "patternKey": "takeout_surprise"
+      },
+      {
+        "content": "骑手显示就在附近，那两个字陪我一起等了二十分钟",
+        "patternKey": "takeout_surprise"
+      },
+      {
+        "content": "少送一双筷子问题不大，前提是家里还有能洗的勺子",
+        "patternKey": "takeout_surprise"
+      },
+      {
+        "content": "点完健康轻食又加一份炸鸡，营养和快乐终于达成平衡",
+        "patternKey": "takeout_surprise"
+      },
+      {
+        "content": "餐盒盖得很严，汤还是找到了一条通往袋底的自由路线",
+        "patternKey": "takeout_surprise"
+      },
+      {
+        "content": "减肥第一天冰箱格外有魅力，连剩半根黄瓜都像在招手",
+        "patternKey": "diet_negotiation"
+      },
+      {
+        "content": "晚饭只吃七分饱，剩下三分用刷美食视频认真补齐",
+        "patternKey": "diet_negotiation"
+      },
+      {
+        "content": "体重秤数字没变，我决定先肯定它情绪稳定的优点",
+        "patternKey": "diet_negotiation"
+      },
+      {
+        "content": "买了全套运动装备，最先练熟的是拆快递和叠衣服",
+        "patternKey": "diet_negotiation"
+      },
+      {
+        "content": "沙拉吃完胃很安静，脑子却开始逐家浏览烧烤店",
+        "patternKey": "diet_negotiation"
+      },
+      {
+        "content": "忍住奶茶一下午，晚上奖励自己两块看起来很小的蛋糕",
+        "patternKey": "diet_negotiation"
+      },
+      {
+        "content": "聚会回家第一件事，是逐字审核自己说过的每一句话",
+        "patternKey": "social_aftershock"
+      },
+      {
+        "content": "电梯遇到邻居想说早上好，出口时已经自动变成你好",
+        "patternKey": "social_aftershock"
+      },
+      {
+        "content": "挥手告别后发现方向相同，只好并肩再走一段安静的路",
+        "patternKey": "social_aftershock"
+      },
+      {
+        "content": "别人讲完笑话我慢半拍才懂，笑声单独补交显得很努力",
+        "patternKey": "social_aftershock"
+      },
+      {
+        "content": "群里发错表情立刻撤回，那一秒已经足够我记住半年",
+        "patternKey": "social_aftershock"
+      },
+      {
+        "content": "自我介绍准备得很流畅，轮到我时名字差点也需要提示",
+        "patternKey": "social_aftershock"
+      },
+      {
+        "content": "天气热到出门五分钟，刚吹好的头发就恢复了自由形态",
+        "patternKey": "weather_mood"
+      },
+      {
+        "content": "雨伞带了一周都是晴天，忘在家那天云特别有行动力",
+        "patternKey": "weather_mood"
+      },
+      {
+        "content": "降温通知看着只有六度，穿少以后每一度都很有存在感",
+        "patternKey": "weather_mood"
+      },
+      {
+        "content": "大风把伞吹成反方向，我和路人一起假装这很正常",
+        "patternKey": "weather_mood"
+      },
+      {
+        "content": "阴天让窗外自带灰色滤镜，我的待办也跟着失去饱和度",
+        "patternKey": "weather_mood"
+      },
+      {
+        "content": "太阳突然出来，晾了一上午的衣服刚好已经收进屋里",
+        "patternKey": "weather_mood"
+      },
+      {
+        "content": "拖延症不是不做，是先等待一个桌面干净又心情完美的时刻",
+        "patternKey": "procrastination_loop"
+      },
+      {
+        "content": "打开文档前先回了消息，回完消息顺便看完了半部电影",
+        "patternKey": "procrastination_loop"
+      },
+      {
+        "content": "计划晚上八点开始，八点零五决定凑到八点半更完整",
+        "patternKey": "procrastination_loop"
+      },
+      {
+        "content": "待办写得越详细，完成计划这件事本身就越像已经努力过",
+        "patternKey": "procrastination_loop"
+      },
+      {
+        "content": "最后期限一靠近，平时打不开的专注力突然全速上线",
+        "patternKey": "procrastination_loop"
+      },
+      {
+        "content": "本来只想休息十分钟，手机替我把十分钟翻译成一小时",
+        "patternKey": "procrastination_loop"
+      },
+      {
+        "content": "洗好的衣服在晾衣架住了三天，已经有了长期租客的气质",
+        "patternKey": "chore_delay"
+      },
+      {
+        "content": "垃圾袋系好放在门口，只差一个愿意顺手的人经过",
+        "patternKey": "chore_delay"
+      },
+      {
+        "content": "扫地机器人被电线困住，家里唯一勤劳的成员也申请暂停",
+        "patternKey": "chore_delay"
+      },
+      {
+        "content": "碗泡在水里等一个奇迹，奇迹最后还是戴着手套的我",
+        "patternKey": "chore_delay"
+      },
+      {
+        "content": "收拾桌面时翻到旧照片，家务现场立刻变成回忆展览",
+        "patternKey": "chore_delay"
+      },
+      {
+        "content": "换床单前觉得工程浩大，换完又觉得自己能重新生活",
+        "patternKey": "chore_delay"
+      },
+      {
+        "content": "购物车里放了半个月的东西，降价那天我正好忘了买",
+        "patternKey": "shopping_regret"
+      },
+      {
+        "content": "快递拆开很快乐，纸箱堆在门口开始发展新的烦恼",
+        "patternKey": "shopping_regret"
+      },
+      {
+        "content": "试衣镜里觉得刚刚好，回家再看像买给另一种人生",
+        "patternKey": "shopping_regret"
+      },
+      {
+        "content": "为了凑满减多买两样，省钱过程最终花得非常完整",
+        "patternKey": "shopping_regret"
+      },
+      {
+        "content": "直播间倒计时只有十秒，我的理智也跟着进入倒计时",
+        "patternKey": "shopping_regret"
+      },
+      {
+        "content": "退货理由写不合适，其实最不合适的是付款时的冲动",
+        "patternKey": "shopping_regret"
+      },
+      {
+        "content": "耳机线刚理顺又打结，今天的耐心在这个小结里漏了一点",
+        "patternKey": "tiny_breakdown"
+      },
+      {
+        "content": "钥匙明明放在固定位置，出门时固定位置突然集体搬家",
+        "patternKey": "tiny_breakdown"
+      },
+      {
+        "content": "手机只剩百分之一，充电线偏偏在房间另一头保持冷静",
+        "patternKey": "tiny_breakdown"
+      },
+      {
+        "content": "刚擦完桌子水杯就倒了，生活很会安排即时验收",
+        "patternKey": "tiny_breakdown"
+      },
+      {
+        "content": "想吃的那家店正好休息，胃和计划一起站在门口发呆",
+        "patternKey": "tiny_breakdown"
+      },
+      {
+        "content": "电梯在每一层都停，唯独我的楼层像在最后压轴",
+        "patternKey": "tiny_breakdown"
+      },
+      {
+        "content": "周末睡到自然醒很快乐，睁眼发现半天已经自然地过去",
+        "patternKey": "weekend_recharge"
+      },
+      {
+        "content": "列了五项休息计划，最后在沙发上完成了保持不动",
+        "patternKey": "weekend_recharge"
+      },
+      {
+        "content": "想出门晒太阳，换好衣服后发现窗边其实也挺亮",
+        "patternKey": "weekend_recharge"
+      },
+      {
+        "content": "周日下午开始舍不得周末，时间却已经默默穿好鞋",
+        "patternKey": "weekend_recharge"
+      },
+      {
+        "content": "补觉睡得太久，醒来分不清现在该吃早餐还是晚饭",
+        "patternKey": "weekend_recharge"
+      },
+      {
+        "content": "两天假期像刚充到一半的电，周一已经拿着数据线来拔",
+        "patternKey": "weekend_recharge"
+      }
     ]
   }
 ]

@@ -1,3 +1,4 @@
+import { normalizePostAuthor, type PostAuthor } from "@/components/post-author";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -22,6 +23,7 @@ export type PostWithProfile = {
   created_at: string;
   updated_at?: string | null;
   profiles: Profile;
+  author?: PostAuthor;
   is_ai_post?: boolean;
   ai_bot_id?: string | null;
   ai_bots?: {
@@ -61,12 +63,12 @@ export async function getPosts(limit = 50) {
   try {
     const { data, error } = await supabase
       .from("posts")
-      .select("id,user_id,content,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,profiles(id,nickname,exp,energy,streak_count),ai_bots(id,display_name,avatar_url,display_label,persona_type)")
+      .select("id,user_id,content,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,profiles(id,nickname,avatar_url,exp,energy,streak_count),ai_bots(id,display_name,avatar_url,display_label,persona_type)")
       .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) throw error;
-    return (data ?? []) as unknown as PostWithProfile[];
+    return (data ?? []).map(toPostWithAuthor);
   } catch {
     return [];
   }
@@ -84,7 +86,7 @@ export async function getProfile(userId: string) {
       supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", userId),
       supabase
         .from("posts")
-        .select("id,user_id,content,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,profiles(id,nickname,exp,energy,streak_count),ai_bots(id,display_name,avatar_url,display_label,persona_type)")
+        .select("id,user_id,content,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,profiles(id,nickname,avatar_url,exp,energy,streak_count),ai_bots(id,display_name,avatar_url,display_label,persona_type)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false }),
       supabase.from("posts").select("reaction_count").eq("user_id", userId),
@@ -94,8 +96,33 @@ export async function getProfile(userId: string) {
     const postLikeCount = (postLikes ?? []).reduce((sum, post) => sum + Number(post.reaction_count ?? 0), 0);
     const commentLikeCount = (commentLikes ?? []).reduce((sum, comment) => sum + Number(comment.like_count ?? 0), 0);
     const totalLikes = postLikeCount + commentLikeCount;
-    return { profile: profile as Profile | null, totalPosts: totalPosts ?? 0, totalLikes, posts: posts as unknown as PostWithProfile[] };
+    return {
+      profile: profile as Profile | null,
+      totalPosts: totalPosts ?? 0,
+      totalLikes,
+      posts: (posts ?? []).map(toPostWithAuthor)
+    };
   } catch {
     return { profile: null, totalPosts: 0, totalLikes: 0, posts: [] as PostWithProfile[] };
   }
+}
+
+function toPostWithAuthor(row: any): PostWithProfile {
+  const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  const aiBot = Array.isArray(row.ai_bots) ? row.ai_bots[0] : row.ai_bots;
+  return {
+    ...row,
+    profiles: profile,
+    ai_bots: aiBot ?? null,
+    author: normalizePostAuthor({
+      userId: row.user_id ?? "",
+      isAi: Boolean(row.is_ai_post),
+      profile: profile
+        ? { id: profile.id, nickname: profile.nickname, avatarUrl: profile.avatar_url }
+        : null,
+      aiBot: aiBot
+        ? { id: aiBot.id, displayName: aiBot.display_name, avatarUrl: aiBot.avatar_url, displayLabel: aiBot.display_label }
+        : null
+    })
+  } as PostWithProfile;
 }
