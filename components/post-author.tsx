@@ -80,6 +80,7 @@ export function PostAuthorRow({
               {author.aiLabel}
             </span>
           ) : null}
+          {badge}
         </span>
         <span className="mt-2 block text-meta text-muted">{meta}</span>
       </span>
