@@ -32,6 +32,7 @@ export function LocalPostCard({
   onFavorite,
   onDelete,
   disabled = false,
+  followed = false,
   href = `/post/${post.id}`
 }: {
   post: LocalPost;
@@ -44,6 +45,7 @@ export function LocalPostCard({
   onDelete?: () => void;
   disabled?: boolean;
   href?: string;
+  followed?: boolean;
 }) {
   const { t } = useI18n();
   const heatClass = getHeatClass(post.reaction_count);
@@ -59,7 +61,7 @@ export function LocalPostCard({
 
   return (
     <motion.article
-      className={`glass relative overflow-hidden rounded-card p-5 transition-colors ${heatClass}`}
+      className={`glass relative overflow-hidden rounded-card p-5 transition-colors ${heatClass} ${followed ? "border-l-2 border-l-emerald-200/60 bg-emerald-200/[0.025]" : ""}`}
       initial={{ opacity: 0, y: 20, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.32, delay: Math.min(index * 0.055, 0.4), ease: "easeOut" }}
@@ -67,10 +69,14 @@ export function LocalPostCard({
     >
       {post.reaction_count >= 200 ? <span className="hot-shine" /> : null}
       <div className="mb-4 flex items-start justify-between gap-3">
-        <Link href={post.is_mock ? "#" : "/profile"} className="flex min-w-0 items-center gap-3">
+        <Link href={post.is_mock ? "#" : `/profile/${post.user_id}`} className="flex min-w-0 items-center gap-3">
           <img alt="" className="h-11 w-11 shrink-0 rounded-2xl border border-acid/25 bg-acid/10 object-contain p-1" src={post.avatar_url} />
           <span className="min-w-0">
-            <span className="block truncate text-[15px] font-semibold leading-5 text-white">{post.nickname}</span>
+            <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[15px] font-semibold leading-5 text-white">
+              <span className="truncate">{post.nickname}</span>
+              {post.is_ai_post ? <AiBadge label={post.ai_display_label ?? "AI吐槽员"} /> : null}
+              {followed ? <span className="rounded-full border border-emerald-100/20 bg-emerald-100/[0.06] px-2 py-0.5 text-[10px] font-medium text-emerald-100/75">{t("follow.followedBadge")}</span> : null}
+            </span>
             <span className="mt-2 block text-meta text-muted">{formatLocalTime(post.created_at, t)}</span>
           </span>
         </Link>
@@ -119,6 +125,10 @@ export function LocalPostCard({
       </div>
     </motion.article>
   );
+}
+
+function AiBadge({ label }: { label: string }) {
+  return <span className="shrink-0 rounded-full border border-acid/25 bg-acid/10 px-2 py-0.5 text-[10px] font-medium leading-none text-acid">{label}</span>;
 }
 
 function LikeBadge({ count, disabled, liked, onClick }: { count: number; disabled?: boolean; liked: boolean; onClick: () => void }) {

@@ -48,7 +48,10 @@ export function PostCard({ post, timeMode = "relative" }: { post: PostWithProfil
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <Link href={`/profile?user=${post.user_id}`} className="min-w-0">
-          <p className="truncate text-[15px] font-semibold leading-5 text-white">{post.profiles.nickname}</p>
+          <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[15px] font-semibold leading-5 text-white">
+            <span className="truncate">{post.profiles.nickname}</span>
+            {post.is_ai_post ? <span className="shrink-0 rounded-full border border-acid/25 bg-acid/10 px-2 py-0.5 text-[10px] font-medium leading-none text-acid">{post.ai_display_label ?? "AI吐槽员"}</span> : null}
+          </p>
           <p className="mt-2 text-meta text-muted">
             Lv{level.level} · {level.title} · {formatTime(post.created_at, { mode: timeMode, editedAt: post.updated_at })}
           </p>

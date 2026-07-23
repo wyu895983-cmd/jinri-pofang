@@ -8,8 +8,10 @@ import { RichContent } from "@/components/rich-content";
 import { StickerPicker } from "@/components/sticker-picker";
 import { Toast } from "@/components/toast";
 import { useI18n } from "@/lib/i18n";
+import { insertComment, removeCommentBranch } from "@/lib/comment-thread";
 import {
   createComment,
+  deleteComment,
   deletePost,
   getComments,
   getCurrentUser,
@@ -21,6 +23,7 @@ import {
   likePost,
   LocalComment,
   LocalPost,
+  LocalUser,
   subscribeToComments,
   subscribeToPost,
   toggleFavorite
@@ -52,16 +55,22 @@ export default function PostDetailPage() {
   const [comments, setComments] = useState<LocalComment[]>([]);
   const [favorited, setFavorited] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<LocalUser | null>(null);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
+  const commentFormRef = useRef<HTMLFormElement>(null);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [replyTarget, setReplyTarget] = useState<LocalComment | null>(null);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentValue, setCommentValue] = useState("");
   const [pendingPostIds, setPendingPostIds] = useState<Set<string>>(new Set());
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(new Set());
+  const [deletingCommentIds, setDeletingCommentIds] = useState<Set<string>>(new Set());
+  const [openCommentMenu, setOpenCommentMenu] = useState<string | null>(null);
   const commentsById = useMemo(() => new Map(comments.map((comment) => [comment.id, comment])), [comments]);
   const topComments = useMemo(() => comments.filter((comment) => !getParentCommentId(comment)), [comments]);
   const repliesByParent = useMemo(() => {
@@ -70,7 +79,7 @@ export default function PostDetailPage() {
       const directParentId = getParentCommentId(comment);
       if (!directParentId) return acc;
       const parent = byId.get(directParentId);
-      const parentId = parent ? getParentCommentId(parent) ?? directParentId : directParentId;
+      const parentId = comment.root_comment_id ?? (parent ? getParentCommentId(parent) ?? directParentId : directParentId);
       acc[parentId] = [...(acc[parentId] ?? []), comment].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
       return acc;
     }, {});
@@ -80,6 +89,7 @@ export default function PostDetailPage() {
     if (deletingRef.current) return;
     const current = getCurrentUser();
     setUserId(getCurrentUserId(current));
+    setCurrentUser(current);
     setCommentsLoading(true);
     const [nextPost, nextComments] = await Promise.all([getPost(params.id), getComments(params.id)]);
     setPost(nextPost);
@@ -134,8 +144,17 @@ export default function PostDetailPage() {
   useEffect(() => {
     if (replyTarget && !comments.some((comment) => comment.id === replyTarget.id)) {
       setReplyTarget(null);
+      setError(t("post.commentDeleted"));
     }
-  }, [comments, replyTarget]);
+  }, [comments, replyTarget, t]);
+
+  function beginReply(comment: LocalComment) {
+    setReplyTarget(comment);
+    setError("");
+    commentFormRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    commentInputRef.current?.focus({ preventScroll: true });
+    window.requestAnimationFrame(() => commentInputRef.current?.focus({ preventScroll: true }));
+  }
 
   function requireName() {
     if (getCurrentUser()) return true;
@@ -153,13 +172,20 @@ export default function PostDetailPage() {
 
     try {
       setSubmittingComment(true);
-      await createComment(params.id, content, replyTarget?.id ?? null);
+      const created = await createComment(params.id, content, replyTarget?.id ?? null);
       form.reset();
+      setCommentValue("");
+      setComments((current) => insertComment(current, created));
       setReplyTarget(null);
       setError("");
-      await refresh();
-    } catch {
-      setError("评论失败，请稍后再试");
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "";
+      if (message.includes("COMMENT_DELETED")) {
+        setReplyTarget(null);
+        setError(t("post.commentDeleted"));
+      } else {
+        setError(t("post.commentFailed"));
+      }
     } finally {
       setSubmittingComment(false);
     }
@@ -217,6 +243,58 @@ export default function PostDetailPage() {
         return next;
       });
     }
+  }
+
+  function canDeleteComment(comment: LocalComment) {
+    if (!userId || !post) return false;
+    return userId === comment.user_id || userId === getPostAuthorId(post) || Boolean(currentUser?.is_admin);
+  }
+
+  async function handleDeleteComment(comment: LocalComment) {
+    if (deletingCommentIds.has(comment.id) || !window.confirm(t("post.deleteCommentConfirm"))) return;
+    const deletedCount = comments.length - removeCommentBranch(comments, comment.id).length;
+    setOpenCommentMenu(null);
+    setDeletingCommentIds((value) => new Set(value).add(comment.id));
+    try {
+      await deleteComment(comment.id);
+      setComments((value) => removeCommentBranch(value, comment.id));
+      setPost((value) => value ? { ...value, comment_count: Math.max(0, value.comment_count - deletedCount) } : value);
+      if (replyTarget && (replyTarget.id === comment.id || replyTarget.root_comment_id === comment.id)) setReplyTarget(null);
+      setToast(t("post.commentDeletedSuccess"));
+      window.setTimeout(() => setToast(""), 1800);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "";
+      if (message.includes("PROFILE_SESSION_REQUIRED") || message.includes("PROFILE_SESSION_INVALID")) {
+        router.push(`/login?message=${encodeURIComponent(t("auth.secureSessionRequired"))}`);
+      } else if (message.includes("COMMENT_DELETED")) {
+        setComments((value) => removeCommentBranch(value, comment.id));
+        setError(t("post.commentDeleted"));
+      } else {
+        setError(message.includes("COMMENT_DELETE_FORBIDDEN") ? t("post.deleteCommentForbidden") : t("post.deleteCommentFailed"));
+      }
+    } finally {
+      setDeletingCommentIds((value) => {
+        const next = new Set(value);
+        next.delete(comment.id);
+        return next;
+      });
+    }
+  }
+
+  function renderCommentDeleteMenu(comment: LocalComment) {
+    if (!canDeleteComment(comment)) return null;
+    return (
+      <div className="relative ml-auto">
+        <button aria-label={t("post.commentMenu")} className="rounded-button px-2 py-1 text-muted transition hover:bg-white/5 hover:text-white" onClick={() => setOpenCommentMenu((value) => value === comment.id ? null : comment.id)} type="button">···</button>
+        {openCommentMenu === comment.id ? (
+          <div className="absolute right-0 top-full z-20 mt-1 min-w-28 rounded-button border border-line bg-ink p-1 shadow-xl">
+            <button className="w-full rounded-button px-3 py-2 text-left text-label text-red-300 hover:bg-white/5 disabled:opacity-50" disabled={deletingCommentIds.has(comment.id)} onClick={() => handleDeleteComment(comment)} type="button">
+              {t("post.deleteComment")}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
   }
 
   async function handleDelete() {
@@ -304,9 +382,9 @@ export default function PostDetailPage() {
           : null}
       </div>
 
-      <section className="glass rounded-card p-5">
+      <section className="glass flex flex-col rounded-card p-5">
         <h2 className="text-h2 text-white">{t("post.commentArea")}</h2>
-        <form className="mt-4" onSubmit={submitComment}>
+        <form className="order-last mt-6" onSubmit={submitComment} ref={commentFormRef}>
           {error ? <p className="mb-3 text-meta text-acid">{error}</p> : null}
           {replyTarget ? (
             <div className="mb-3 flex items-center justify-between gap-3 rounded-card border border-acid/30 bg-acid/10 px-3 py-2 text-meta text-acid">
@@ -317,13 +395,16 @@ export default function PostDetailPage() {
             </div>
           ) : null}
           <textarea
+            ref={commentInputRef}
             className="w-full resize-none rounded-card border border-line bg-ink/70 p-4 text-body text-white outline-none ring-acid/20 placeholder:text-zinc-600 focus:border-acid focus:ring-4"
             maxLength={80}
             name="content"
+            onChange={(event) => setCommentValue(event.target.value)}
             placeholder={replyTarget ? t("post.replyPlaceholder", { name: replyTarget.nickname }) : t("post.commentPlaceholder")}
             rows={3}
+            value={commentValue}
           />
-          <StickerPicker />
+          <StickerPicker onValueChange={setCommentValue} textareaRef={commentInputRef} value={commentValue} />
           <button className="app-button mt-3 bg-acid text-ink hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60" disabled={submittingComment}>
             {submittingComment ? t("create.submitting") : t("common.comment")}
           </button>
@@ -346,10 +427,11 @@ export default function PostDetailPage() {
                   <div className="flex min-w-0 items-center gap-3">
                     <img alt="" className="h-9 w-9 rounded-2xl border border-acid/20 bg-acid/10 object-contain p-1" decoding="async" loading="lazy" src={comment.avatar_url} />
                     <div className="min-w-0">
-                      <p className="truncate text-[15px] font-semibold leading-5 text-white">{comment.nickname}</p>
+                      <button className="block max-w-full truncate text-left text-[15px] font-semibold leading-5 text-white hover:text-acid" onClick={() => beginReply(comment)} type="button">{comment.nickname}</button>
                       <p className="mt-1 text-meta text-muted">{formatCommentTime(comment.created_at, t)}</p>
                     </div>
                   </div>
+                  {renderCommentDeleteMenu(comment)}
                   <motion.button
                     className={`rounded-[12px] border px-3 py-1 text-label ${
                       userId && comment.liked_by.includes(userId) ? "border-acid/70 bg-acid/20 text-acid" : "border-line text-muted"
@@ -364,8 +446,10 @@ export default function PostDetailPage() {
                     </motion.span>
                   </motion.button>
                 </div>
-                <RichContent className="text-body text-zinc-200" content={comment.content} />
-                <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setReplyTarget(comment)} type="button">
+                <button className="block w-full text-left" onClick={() => beginReply(comment)} type="button">
+                  <RichContent className="text-body text-zinc-200" content={comment.content} />
+                </button>
+                <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => beginReply(comment)} type="button">
                   {t("common.reply")}
                 </button>
                 {repliesByParent[comment.id]?.length ? (
@@ -379,10 +463,11 @@ export default function PostDetailPage() {
                           <div className="flex min-w-0 items-center gap-2">
                             <img alt="" className="h-7 w-7 rounded-xl border border-acid/20 bg-acid/10 object-contain p-1" decoding="async" loading="lazy" src={reply.avatar_url} />
                             <div className="min-w-0">
-                              <p className="truncate text-[14px] font-semibold leading-5 text-white">{reply.nickname}</p>
+                              <button className="block max-w-full truncate text-left text-[14px] font-semibold leading-5 text-white hover:text-acid" onClick={() => beginReply(reply)} type="button">{reply.nickname}</button>
                               <p className="mt-0.5 text-meta text-muted">{formatCommentTime(reply.created_at, t)}</p>
                             </div>
                           </div>
+                          {renderCommentDeleteMenu(reply)}
                           <motion.button
                             className={`rounded-[12px] border px-2 py-1 text-label ${
                               userId && reply.liked_by.includes(userId) ? "border-acid/70 bg-acid/20 text-acid" : "border-line text-muted"
@@ -397,8 +482,10 @@ export default function PostDetailPage() {
                             </motion.span>
                           </motion.button>
                         </div>
-                        <RichContent className="text-body text-zinc-200" content={`${reply.nickname}：${reply.content}`} />
-                        <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => setReplyTarget(reply)} type="button">
+                        <button className="block w-full text-left" onClick={() => beginReply(reply)} type="button">
+                          <RichContent className="text-body text-zinc-200" content={formatReplyLine(reply, commentsById, comment, t)} />
+                        </button>
+                        <button className="mt-3 text-label text-muted transition hover:text-acid" onClick={() => beginReply(reply)} type="button">
                           {t("common.reply")}
                         </button>
                       </article>
@@ -456,7 +543,7 @@ function getReplyContext(reply: LocalComment, commentsById: Map<string, LocalCom
   const parentId = getParentCommentId(reply);
   const parentComment = parentId ? commentsById.get(parentId) : null;
   return {
-    nickname: reply.replyToUser?.nickname || parentComment?.nickname || reply.parent_nickname || topLevelComment.nickname,
+    nickname: reply.reply_to_username || reply.replyToUser?.nickname || parentComment?.nickname || reply.parent_nickname || topLevelComment.nickname,
     content: reply.replyToComment?.content || parentComment?.content || topLevelComment.content
   };
 }
@@ -469,6 +556,16 @@ function formatReplyContext(
 ) {
   const context = getReplyContext(reply, commentsById, topLevelComment);
   return t("post.replyContext", { name: context.nickname, content: context.content });
+}
+
+function formatReplyLine(
+  reply: LocalComment,
+  commentsById: Map<string, LocalComment>,
+  topLevelComment: LocalComment,
+  t: (key: string, values?: Record<string, string | number>) => string
+) {
+  const context = getReplyContext(reply, commentsById, topLevelComment);
+  return t("post.replyLine", { author: reply.nickname, name: context.nickname, content: reply.content });
 }
 
 function PostDetailSkeleton() {

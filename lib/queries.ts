@@ -22,6 +22,10 @@ export type PostWithProfile = {
   created_at: string;
   updated_at?: string | null;
   profiles: Profile;
+  is_ai_post?: boolean;
+  ai_bot_id?: string | null;
+  ai_display_label?: string | null;
+  ai_persona_type?: string | null;
 };
 
 export async function getSessionUser() {

@@ -15,6 +15,7 @@ import { useI18n } from "@/lib/i18n";
 import { getLevelInfo } from "@/lib/levels";
 import {
   getFavorites,
+  getFollowCounts,
   getNotifications,
   getPosts,
   InteractionNotification,
@@ -36,6 +37,7 @@ export default function ProfilePage() {
   const [nickname, setNickname] = useState("");
   const [avatar, setAvatar] = useState("");
   const [favoriteCount, setFavoriteCount] = useState(0);
+  const [followCounts, setFollowCounts] = useState({ followingCount: 0, followerCount: 0 });
   const [notifications, setNotifications] = useState<InteractionNotification[]>([]);
   const [likesExpanded, setLikesExpanded] = useState(false);
   const [commentsExpanded, setCommentsExpanded] = useState(false);
@@ -62,9 +64,10 @@ export default function ProfilePage() {
       return;
     }
 
-    const [nextNotifications, nextPosts] = await Promise.all([markRead ? markNotificationsRead() : getNotifications(), getPosts()]);
+    const [nextNotifications, nextPosts, nextFollowCounts] = await Promise.all([markRead ? markNotificationsRead() : getNotifications(), getPosts(), getFollowCounts(current.guest_user_id)]);
     setNotifications(nextNotifications);
     setPosts(nextPosts.filter((post) => post.user_id === current.guest_user_id));
+    setFollowCounts(nextFollowCounts);
   }
 
   useEffect(() => {
@@ -254,6 +257,8 @@ export default function ProfilePage() {
         <StatsCard label={t("profile.totalLikes")} value={user.total_likes} />
         <StatsCard label={t("profile.favorites")} value={favoriteCount} />
         <StatsCard label={t("profile.streak")} value={`${user.login_streak} ${t("profile.days")}`} />
+        <StatsCard label={t("follow.followingCount")} value={followCounts.followingCount} />
+        <StatsCard label={t("follow.followerCount")} value={followCounts.followerCount} />
       </div>
 
       <section className="glass rounded-card p-5">

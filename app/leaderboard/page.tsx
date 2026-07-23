@@ -77,7 +77,7 @@ export default function LeaderboardPage() {
             topUsers.map((profile, index) => {
               const level = getLevelInfo(profile.exp);
               return (
-                <Link className="flex items-center justify-between rounded-card bg-white/[0.04] p-4 hover:bg-white/[0.07]" href="/profile" key={profile.guest_user_id}>
+            <Link className="flex items-center justify-between rounded-card bg-white/[0.04] p-4 hover:bg-white/[0.07]" href={`/profile/${profile.guest_user_id}`} key={profile.guest_user_id}>
                   <div className="flex min-w-0 items-center gap-3">
                     <img alt="" className="h-10 w-10 rounded-2xl border border-acid/20 bg-acid/10 object-contain p-1" src={profile.avatar_url} />
                     <div className="min-w-0">

@@ -3,8 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:comments-follows": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.ts",
     "dev": "next dev",
     "build": "next build",
+    "check:ai-bots": "node scripts/check-ai-bots.mjs",
+    "seed:ai-bots": "node scripts/seed-ai-bots.mjs",
     "start": "next start",
     "lint": "next lint",
     "portfolio:screenshots": "node scripts/capture-portfolio-screens.mjs",

@@ -1,4 +1,5 @@
 create extension if not exists pgcrypto;
+create schema if not exists private;
 
 create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
@@ -20,6 +21,46 @@ create table if not exists public.profiles (
 alter table public.profiles
   add column if not exists language text not null default 'zh-CN' check (language in ('zh-CN', 'ja', 'ko', 'en'));
 
+alter table public.profiles
+  add column if not exists is_ai boolean not null default false,
+  add column if not exists ai_persona_type text,
+  add column if not exists ai_persona_desc text,
+  add column if not exists ai_display_label text;
+
+create table if not exists public.ai_bots (
+  id uuid primary key,
+  display_name text not null unique check (char_length(trim(display_name)) between 1 and 12),
+  avatar_url text not null default '/brand-mark.svg',
+  persona_type text not null check (persona_type in ('worker', 'student', 'life')),
+  persona_desc text not null,
+  tone text not null,
+  topics text[] not null default '{}',
+  display_label text not null default 'AI吐槽员' check (display_label in ('AI吐槽员', 'PoPo分身')),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.ai_post_templates (
+  id uuid primary key default gen_random_uuid(),
+  ai_bot_id uuid not null references public.ai_bots(id) on delete cascade,
+  content text not null check (char_length(trim(content)) between 15 and 60),
+  is_active boolean not null default true,
+  used_count integer not null default 0 check (used_count >= 0),
+  last_used_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique(ai_bot_id, content)
+);
+
+create table if not exists public.app_settings (
+  key text primary key,
+  value text not null,
+  updated_at timestamptz not null default now()
+);
+
+insert into public.app_settings(key, value)
+values ('ai_auto_posting_enabled', 'true')
+on conflict (key) do nothing;
+
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
@@ -32,10 +73,17 @@ create table if not exists public.posts (
   updated_at timestamptz not null default now()
 );
 
+alter table public.posts
+  add column if not exists is_ai_post boolean not null default false,
+  add column if not exists ai_bot_id uuid references public.ai_bots(id) on delete set null;
+
 create table if not exists public.comments (
   id uuid primary key default gen_random_uuid(),
   post_id uuid not null references public.posts(id) on delete cascade,
   parent_comment_id uuid references public.comments(id) on delete cascade,
+  root_comment_id uuid references public.comments(id) on delete cascade,
+  reply_to_user_id uuid references public.profiles(id) on delete set null,
+  reply_to_username text,
   user_id uuid not null references public.profiles(id) on delete cascade,
   content text not null check (char_length(trim(content)) between 1 and 80),
   sticker_id text,
@@ -44,6 +92,27 @@ create table if not exists public.comments (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create table if not exists public.follows (
+  follower_id uuid not null references public.profiles(id) on delete cascade,
+  following_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (follower_id, following_id),
+  constraint follows_not_self check (follower_id <> following_id)
+);
+
+create table if not exists private.profile_sessions (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  token_hash text not null unique,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  revoked_at timestamptz,
+  last_seen_at timestamptz not null default now()
+);
+
+alter table private.profile_sessions enable row level security;
+revoke all on private.profile_sessions from public, anon, authenticated;
 
 create table if not exists public.reactions (
   id uuid primary key default gen_random_uuid(),
@@ -98,22 +167,33 @@ alter table public.notifications
   add column if not exists "commentId" uuid references public.comments(id) on delete cascade;
 
 alter table public.comments
-  add column if not exists parent_comment_id uuid references public.comments(id) on delete cascade;
+  add column if not exists parent_comment_id uuid references public.comments(id) on delete cascade,
+  add column if not exists root_comment_id uuid references public.comments(id) on delete cascade,
+  add column if not exists reply_to_user_id uuid references public.profiles(id) on delete set null,
+  add column if not exists reply_to_username text;
 
 create index if not exists posts_created_at_idx on public.posts(created_at desc);
 create index if not exists posts_user_id_idx on public.posts(user_id);
+create index if not exists posts_ai_bot_day_idx on public.posts(ai_bot_id, created_at desc) where is_ai_post = true;
 create index if not exists comments_post_id_created_at_idx on public.comments(post_id, created_at asc);
 create index if not exists comments_parent_comment_id_created_at_idx on public.comments(parent_comment_id, created_at asc);
+create index if not exists comments_root_created_at_idx on public.comments(root_comment_id, created_at asc) where root_comment_id is not null;
+create index if not exists comments_reply_to_user_id_idx on public.comments(reply_to_user_id) where reply_to_user_id is not null;
 create index if not exists profiles_exp_idx on public.profiles(exp desc);
 create index if not exists notifications_to_user_read_created_idx on public.notifications("toUserId", read, "createdAt" desc);
+create index if not exists ai_post_templates_bot_active_idx on public.ai_post_templates(ai_bot_id, is_active, last_used_at);
 
 alter table public.profiles enable row level security;
 alter table public.posts enable row level security;
 alter table public.comments enable row level security;
+alter table public.follows enable row level security;
 alter table public.reactions enable row level security;
 alter table public.exp_logs enable row level security;
 alter table public.feedbacks enable row level security;
 alter table public.notifications enable row level security;
+alter table public.ai_bots enable row level security;
+alter table public.ai_post_templates enable row level security;
+alter table public.app_settings enable row level security;
 
 drop policy if exists "profiles are readable" on public.profiles;
 create policy "profiles are readable" on public.profiles for select using (true);
@@ -123,6 +203,9 @@ create policy "posts are readable" on public.posts for select using (true);
 
 drop policy if exists "comments are readable" on public.comments;
 create policy "comments are readable" on public.comments for select using (true);
+drop policy if exists follows_public_read on public.follows;
+create policy follows_public_read on public.follows for select using (true);
+
 
 drop policy if exists "reactions are readable" on public.reactions;
 create policy "reactions are readable" on public.reactions for select using (true);
@@ -132,6 +215,12 @@ create policy "anyone can create feedback" on public.feedbacks for insert with c
 
 drop policy if exists "notifications are readable" on public.notifications;
 create policy "notifications are readable" on public.notifications for select using (true);
+
+drop policy if exists "ai bots are readable" on public.ai_bots;
+create policy "ai bots are readable" on public.ai_bots for select using (true);
+
+drop policy if exists "ai templates are readable" on public.ai_post_templates;
+create policy "ai templates are readable" on public.ai_post_templates for select using (true);
 
 drop policy if exists "notifications are writable by app" on public.notifications;
 create policy "notifications are writable by app" on public.notifications for insert with check (true);
@@ -279,6 +368,7 @@ begin
       avatar_url = coalesce(clean_avatar, avatar_url),
       updated_at = now()
   where id = profile_uuid
+    and is_ai = false
   returning * into row_profile;
 
   if row_profile.id is null then
@@ -328,7 +418,7 @@ declare
 begin
   row_profile := public.ensure_daily_profile(profile_uuid);
 
-  if row_profile.id is null then
+  if row_profile.id is null or row_profile.is_ai then
     raise exception '请先取个名字';
   end if;
 
@@ -547,6 +637,97 @@ begin
 end;
 $$;
 
+create or replace function public.create_ai_post_from_pool()
+returns public.posts
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  setting_value text;
+  chosen_bot public.ai_bots;
+  chosen_template public.ai_post_templates;
+  row_post public.posts;
+  today_ai_total integer := 0;
+  today_real_total integer := 0;
+begin
+  select value into setting_value from public.app_settings where key = 'ai_auto_posting_enabled';
+  if coalesce(setting_value, 'true') <> 'true' then
+    raise exception 'AI auto posting is disabled';
+  end if;
+
+  select count(*) into today_real_total
+  from public.posts
+  where is_ai_post = false and created_at >= date_trunc('day', now());
+
+  select count(*) into today_ai_total
+  from public.posts
+  where is_ai_post = true and created_at >= date_trunc('day', now());
+
+  if today_ai_total >= case when today_real_total >= 20 then 3 else 15 end then
+    raise exception 'Daily AI post cap reached';
+  end if;
+
+  select b.* into chosen_bot
+  from public.ai_bots b
+  where b.is_active
+    and (
+      select count(*)
+      from public.posts p
+      where p.ai_bot_id = b.id
+        and p.is_ai_post = true
+        and p.created_at >= date_trunc('day', now())
+    ) < 2
+    and not exists (
+      select 1
+      from public.posts p
+      where p.ai_bot_id = b.id
+        and p.is_ai_post = true
+        and p.created_at > now() - interval '4 hours'
+    )
+  order by random()
+  limit 1;
+
+  if chosen_bot.id is null then
+    raise exception 'No eligible AI bot';
+  end if;
+
+  select t.* into chosen_template
+  from public.ai_post_templates t
+  where t.ai_bot_id = chosen_bot.id
+    and t.is_active
+    and not exists (
+      select 1
+      from public.posts p
+      where p.ai_bot_id = chosen_bot.id
+        and p.content = t.content
+        and p.created_at > now() - interval '3 days'
+    )
+  order by coalesce(t.last_used_at, '-infinity'::timestamptz), random()
+  limit 1;
+
+  if chosen_template.id is null then
+    raise exception 'No eligible AI post template';
+  end if;
+
+  insert into public.posts(user_id, content, sticker_id, is_ai_post, ai_bot_id)
+  values (chosen_bot.id, chosen_template.content, null, true, chosen_bot.id)
+  returning * into row_post;
+
+  update public.ai_post_templates
+  set used_count = used_count + 1,
+      last_used_at = now()
+  where id = chosen_template.id;
+
+  update public.profiles
+  set total_posts = total_posts + 1,
+      updated_at = now()
+  where id = chosen_bot.id;
+
+  return row_post;
+end;
+$$;
+
 create or replace view public.post_feed as
 select
   p.id,
@@ -558,16 +739,21 @@ select
   p.reaction_count,
   p.comment_count,
   p.created_at,
-  p.updated_at
+  p.updated_at,
+  p.is_ai_post,
+  p.ai_bot_id,
+  coalesce(bot.display_label, pr.ai_display_label) as ai_display_label,
+  coalesce(bot.persona_type, pr.ai_persona_type) as ai_persona_type
 from public.posts p
-join public.profiles pr on pr.id = p.user_id;
+join public.profiles pr on pr.id = p.user_id
+left join public.ai_bots bot on bot.id = p.ai_bot_id;
 
-create or replace view public.comment_feed as
+create or replace view public.comment_feed
+with (security_invoker = true)
+as
 select
   c.id,
   c.post_id,
-  c.parent_comment_id,
-  parent_profile.nickname as parent_nickname,
   c.user_id,
   pr.nickname,
   pr.avatar_url,
@@ -575,13 +761,20 @@ select
   c.sticker_id,
   c.like_count,
   c.created_at,
-  c.updated_at
+  c.updated_at,
+  c.parent_comment_id,
+  parent_profile.nickname as parent_nickname,
+  c.root_comment_id,
+  c.reply_to_user_id,
+  c.reply_to_username
 from public.comments c
 join public.profiles pr on pr.id = c.user_id
 left join public.comments parent_comment on parent_comment.id = c.parent_comment_id
 left join public.profiles parent_profile on parent_profile.id = parent_comment.user_id;
 
-grant select on public.profiles, public.posts, public.comments, public.reactions, public.post_feed, public.comment_feed, public.notifications to anon, authenticated;
+grant select on public.profiles, public.posts, public.comments, public.reactions, public.follows, public.post_feed, public.comment_feed, public.notifications, public.ai_bots, public.ai_post_templates to anon, authenticated;
+revoke insert, update, delete on public.follows from anon, authenticated;
+revoke delete on public.comments from anon, authenticated;
 grant insert on public.feedbacks to anon, authenticated;
 grant update(read) on public.notifications to anon, authenticated;
 grant execute on function public.login_or_create_profile(text, text) to anon, authenticated;
@@ -594,6 +787,7 @@ grant execute on function public.react_to_post(uuid, uuid, text) to anon, authen
 grant execute on function public.react_to_comment(uuid, uuid) to anon, authenticated;
 
 revoke execute on function public.add_exp(uuid, text, integer, integer, uuid, text) from public, anon, authenticated;
+revoke execute on function public.create_ai_post_from_pool() from public, anon, authenticated;
 
 alter table public.notifications replica identity full;
 alter table public.posts replica identity full;

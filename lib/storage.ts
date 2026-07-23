@@ -1,6 +1,8 @@
 "use client";
 
 import { HOME_COPY_POOL } from "@/lib/copy-pool";
+import { createAiAvatarFallback, pickAiColdStartPosts } from "@/lib/ai-bots";
+import { removeCommentBranch } from "@/lib/comment-thread";
 import { createSupabaseBrowserClient, isSupabaseBrowserConfigured } from "@/lib/supabase/client";
 
 export type LocalUser = {
@@ -40,6 +42,10 @@ export type LocalPost = {
   created_at: string;
   updated_at?: string | null;
   is_mock?: boolean;
+  is_ai_post?: boolean;
+  ai_bot_id?: string | null;
+  ai_display_label?: string | null;
+  ai_persona_type?: string | null;
 };
 
 export type LocalComment = {
@@ -47,6 +53,9 @@ export type LocalComment = {
   post_id: string;
   parent_comment_uuid?: string | null;
   parent_comment_id?: string | null;
+  root_comment_id?: string | null;
+  reply_to_user_id?: string | null;
+  reply_to_username?: string | null;
   parent_nickname?: string | null;
   replyToComment?: { id: string; content: string } | null;
   replyToUser?: { id?: string; nickname: string } | null;
@@ -74,14 +83,17 @@ export type InteractionNotification = {
 const USER_KEY = "jinri-pofang:guest-user";
 const POSTS_KEY = "jinri-pofang:posts";
 const COMMENTS_KEY = "jinri-pofang:comments";
+const FOLLOWING_KEY = "jinri-pofang:following-ids";
 const FAVORITES_KEY = "jinri-pofang:favorites";
 const USER_NAME_KEY = "userName";
 const USER_AVATAR_KEY = "userAvatar";
 const LANGUAGE_KEY = "jinri-pofang:language";
+const SESSION_TOKEN_KEY = "jinri-pofang:session-token";
 export const DEFAULT_AVATARS = ["/avatars/avatar1.webp", "/avatars/avatar2.webp", "/avatars/avatar3.webp", "/avatars/avatar4.webp"];
 const RANDOM_NICKNAMES = ["今日路过", "普通破防人", "地铁发呆员", "还能再撑会儿", "怨气待机中", "先笑一下"];
-const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
-const COMMENT_FEED_COLUMNS = "id,post_id,parent_comment_id,parent_nickname,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
+const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,ai_display_label,ai_persona_type";
+const LEGACY_POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
+const COMMENT_FEED_COLUMNS = "id,post_id,parent_comment_id,parent_nickname,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at,root_comment_id,reply_to_user_id,reply_to_username";
 const LEGACY_COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
 const PROFILE_COLUMNS = "id,nickname,avatar_url,exp,energy,total_posts,total_likes,login_streak,created_at,last_login_date,is_admin,language";
 const NOTIFICATION_COLUMNS = 'id,type,fromUserId,fromUserName,toUserId,postId,commentId,postText,commentText,createdAt,read';
@@ -181,7 +193,11 @@ function toPost(row: any, likedBy: string[] = []): LocalPost {
     comment_count: Number(row.comment_count ?? 0),
     liked_by: likedBy,
     created_at: row.created_at,
-    updated_at: row.updated_at
+    updated_at: row.updated_at,
+    is_ai_post: Boolean(row.is_ai_post),
+    ai_bot_id: row.ai_bot_id ?? null,
+    ai_display_label: row.ai_display_label ?? null,
+    ai_persona_type: row.ai_persona_type ?? null
   };
 }
 
@@ -196,6 +212,9 @@ function toComment(row: any, likedBy: string[] = []): LocalComment {
     post_id: row.post_id,
     parent_comment_uuid: parentCommentId,
     parent_comment_id: parentCommentId,
+    root_comment_id: row.root_comment_id ?? null,
+    reply_to_user_id: row.reply_to_user_id ?? row.replyToUser?.id ?? null,
+    reply_to_username: row.reply_to_username ?? row.replyToUser?.nickname ?? row.parent_nickname ?? null,
     parent_nickname: row.parent_nickname ?? null,
     replyToComment: row.replyToComment ?? row.reply_to_comment ?? null,
     replyToUser: row.replyToUser ?? row.reply_to_user ?? null,
@@ -214,7 +233,7 @@ function seedPosts(): LocalPost[] {
   const existing = readJson<LocalPost[] | null>(POSTS_KEY, null);
   if (existing) return existing;
 
-  const posts: LocalPost[] = HOME_COPY_POOL.map((content, index) => ({
+  const mockPosts: LocalPost[] = HOME_COPY_POOL.map((content, index) => ({
     id: `mock-${index + 1}`,
     user_id: `mock-user-${index % mockNicknames.length}`,
     nickname: mockNicknames[index % mockNicknames.length],
@@ -227,6 +246,24 @@ function seedPosts(): LocalPost[] {
     updated_at: null,
     is_mock: true
   }));
+  const aiPosts: LocalPost[] = pickAiColdStartPosts({ existingRealPostCount: 0, usedContents: mockPosts.map((post) => post.content) }).map((post, index) => ({
+    id: `mock-ai-${post.botId}-${index + 1}`,
+    user_id: post.botId,
+    nickname: post.bot.displayName,
+    avatar_url: post.bot.avatarUrl || createAiAvatarFallback(post.bot),
+    content: post.content,
+    reaction_count: 2 + ((index * 7) % 18),
+    comment_count: 0,
+    liked_by: [],
+    created_at: post.createdAt,
+    updated_at: null,
+    is_mock: true,
+    is_ai_post: true,
+    ai_bot_id: post.botId,
+    ai_display_label: post.bot.displayLabel,
+    ai_persona_type: post.personaType
+  }));
+  const posts = [...aiPosts, ...mockPosts].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 
   writeJson(POSTS_KEY, posts);
   writeJson(COMMENTS_KEY, []);
@@ -520,6 +557,11 @@ export function subscribeToComments(postId: string, onChange: () => void) {
   };
 }
 
+export function getSessionToken() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(SESSION_TOKEN_KEY);
+}
+
 export async function enterWithNickname(nickname: string, passphrase = "") {
   const trimmed = nickname.trim().slice(0, 12);
   if (!trimmed) throw new Error("请输入昵称");
@@ -529,18 +571,30 @@ export async function enterWithNickname(nickname: string, passphrase = "") {
   if (!isSupabaseBrowserConfigured()) return localEnterWithNickname(trimmed);
 
   const supabase = createSupabaseBrowserClient();
-  const { data, error } = await supabase.rpc("login_or_create_profile", {
+  const credentials = {
     raw_nickname: trimmed,
     raw_passphrase: passphrase
-  });
+  };
+  const { data, error } = await supabase.rpc("login_or_create_profile_session", credentials);
 
-  if (error) throw error;
-  return saveUser(toUser(data));
+  if (!error && data && typeof data === "object" && "profile" in data && "session_token" in data) {
+    const payload = data as { profile: unknown; session_token: string };
+    window.localStorage.setItem(SESSION_TOKEN_KEY, payload.session_token);
+    return saveUser(toUser(payload.profile));
+  }
+
+  if (error && !["PGRST202", "42883"].includes(error.code ?? "")) throw error;
+
+  const { data: legacyData, error: legacyError } = await supabase.rpc("login_or_create_profile", credentials);
+  if (legacyError) throw legacyError;
+  window.localStorage.removeItem(SESSION_TOKEN_KEY);
+  return saveUser(toUser(legacyData));
 }
 
 export function signOutLocalUser() {
   cachedUser = null;
   window.localStorage.removeItem(USER_KEY);
+  window.localStorage.removeItem(SESSION_TOKEN_KEY);
   window.dispatchEvent(new CustomEvent("pofang:storage-change"));
 }
 
@@ -548,6 +602,8 @@ export async function signOutCurrentUser() {
   if (isSupabaseBrowserConfigured()) {
     try {
       const supabase = createSupabaseBrowserClient();
+      const sessionToken = getSessionToken();
+      if (sessionToken) await supabase.rpc("revoke_profile_session", { session_token: sessionToken });
       await supabase.auth.signOut();
     } catch {
       // Local sign-out should still complete if Supabase Auth is unavailable.
@@ -557,14 +613,112 @@ export async function signOutCurrentUser() {
   signOutLocalUser();
 }
 
+export async function getFollowingIds() {
+  const user = getCurrentUser();
+  if (!user) return [];
+  if (isSupabaseBrowserConfigured()) {
+    const supabase = createSupabaseBrowserClient();
+    const { data, error } = await supabase.from("follows").select("following_id").eq("follower_id", user.guest_user_id);
+    if (error) throw error;
+    return [...new Set((data ?? []).map((row: { following_id: string }) => row.following_id))];
+  }
+  return readJson<string[]>(FOLLOWING_KEY, []);
+}
+
+export async function getFollowState(targetProfileId: string) {
+  return (await getFollowingIds()).includes(targetProfileId);
+}
+
+export async function getFollowCounts(profileId: string) {
+  if (isSupabaseBrowserConfigured()) {
+    const supabase = createSupabaseBrowserClient();
+    const [{ count: followingCount, error: followingError }, { count: followerCount, error: followerError }] = await Promise.all([
+      supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profileId),
+      supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profileId)
+    ]);
+    if (followingError) throw followingError;
+    if (followerError) throw followerError;
+    return { followingCount: followingCount ?? 0, followerCount: followerCount ?? 0 };
+  }
+  const currentId = getCurrentUserId(getCurrentUser());
+  const followingCount = currentId === profileId ? readJson<string[]>(FOLLOWING_KEY, []).length : 0;
+  return { followingCount, followerCount: 0 };
+}
+
+export async function getPublicProfile(profileId: string) {
+  const posts = (await getPosts()).filter((post) => post.user_id === profileId);
+  let profile: LocalUser | null = null;
+  if (isSupabaseBrowserConfigured()) {
+    const supabase = createSupabaseBrowserClient();
+    const { data, error } = await supabase.from("profiles").select(PROFILE_COLUMNS).eq("id", profileId).maybeSingle();
+    if (error) throw error;
+    if (data) profile = toUser(data);
+  } else {
+    const current = getCurrentUser();
+    if (getCurrentUserId(current) === profileId) profile = current;
+    else if (posts[0]) profile = {
+      guest_user_id: profileId,
+      nickname: posts[0].nickname,
+      avatar_url: posts[0].avatar_url,
+      created_at: posts[0].created_at,
+      last_login_date: posts[0].created_at.slice(0, 10),
+      login_streak: 0,
+      exp: 0,
+      energy: 0,
+      total_posts: posts.length,
+      total_likes: posts.reduce((sum, post) => sum + post.reaction_count, 0)
+    };
+  }
+  if (!profile) return null;
+  const [{ followingCount, followerCount }, isFollowing] = await Promise.all([getFollowCounts(profileId), getFollowState(profileId)]);
+  return { profile, posts, followingCount, followerCount, isFollowing };
+}
+
+export async function followProfile(targetProfileId: string) {
+  const user = getCurrentUser();
+  if (!user) throw new Error("PROFILE_SESSION_REQUIRED");
+  if (user.guest_user_id === targetProfileId) throw new Error("FOLLOW_SELF_FORBIDDEN");
+  if (isSupabaseBrowserConfigured()) {
+    const sessionToken = getSessionToken();
+    if (!sessionToken) throw new Error("PROFILE_SESSION_REQUIRED");
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.rpc("follow_profile", { session_token: sessionToken, target_profile_id: targetProfileId });
+    if (error) throw new Error(getErrorMessage(error));
+  } else {
+    writeJson(FOLLOWING_KEY, [...new Set([...readJson<string[]>(FOLLOWING_KEY, []), targetProfileId])]);
+  }
+  window.dispatchEvent(new CustomEvent("pofang:storage-change"));
+  return true;
+}
+
+export async function unfollowProfile(targetProfileId: string) {
+  if (isSupabaseBrowserConfigured()) {
+    const sessionToken = getSessionToken();
+    if (!sessionToken) throw new Error("PROFILE_SESSION_REQUIRED");
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.rpc("unfollow_profile", { session_token: sessionToken, target_profile_id: targetProfileId });
+    if (error) throw new Error(getErrorMessage(error));
+  } else {
+    writeJson(FOLLOWING_KEY, readJson<string[]>(FOLLOWING_KEY, []).filter((id) => id !== targetProfileId));
+  }
+  window.dispatchEvent(new CustomEvent("pofang:storage-change"));
+  return true;
+}
+
+export async function getFollowingPosts() {
+  const [posts, followingIds] = await Promise.all([getPosts(), getFollowingIds()]);
+  const followed = new Set(followingIds);
+  return posts.filter((post) => followed.has(post.user_id));
+}
+
 export async function getPosts() {
   const user = getCurrentUser();
 
   if (isSupabaseBrowserConfigured()) {
     try {
       const supabase = createSupabaseBrowserClient();
-      const [{ data: rows, error }, { data: reactions }] = await Promise.all([
-        supabase.from("post_feed").select(POST_FEED_COLUMNS).order("created_at", { ascending: false }).limit(80),
+      const [{ rows, error }, { data: reactions }] = await Promise.all([
+        fetchPostFeedRows(supabase),
         user
           ? supabase.from("reactions").select("post_id").eq("user_id", user.guest_user_id).not("post_id", "is", null)
           : Promise.resolve({ data: [] })
@@ -586,8 +740,8 @@ export async function getPost(postId: string) {
   if (isSupabaseBrowserConfigured() && !postId.startsWith("mock-")) {
     try {
       const supabase = createSupabaseBrowserClient();
-      const [{ data: row, error }, { data: reactions }] = await Promise.all([
-        supabase.from("post_feed").select(POST_FEED_COLUMNS).eq("id", postId).single(),
+      const [{ row, error }, { data: reactions }] = await Promise.all([
+        fetchPostFeedRow(supabase, postId),
         user
           ? supabase.from("reactions").select("post_id").eq("user_id", user.guest_user_id).eq("post_id", postId).limit(1)
           : Promise.resolve({ data: [] })
@@ -636,6 +790,22 @@ export async function createPost(content: string) {
   writeJson(POSTS_KEY, [post, ...posts]);
   saveUser({ ...user, energy: Math.max(user.energy - 1, 0), exp: user.exp + 2, total_posts: user.total_posts + 1 });
   return post;
+}
+
+async function fetchPostFeedRows(supabase: ReturnType<typeof createSupabaseBrowserClient>) {
+  const { data, error } = await supabase.from("post_feed").select(POST_FEED_COLUMNS).order("created_at", { ascending: false }).limit(80);
+  if (!error) return { rows: data ?? [], error: null };
+
+  const legacy = await supabase.from("post_feed").select(LEGACY_POST_FEED_COLUMNS).order("created_at", { ascending: false }).limit(80);
+  return { rows: legacy.data ?? [], error: legacy.error };
+}
+
+async function fetchPostFeedRow(supabase: ReturnType<typeof createSupabaseBrowserClient>, postId: string) {
+  const { data, error } = await supabase.from("post_feed").select(POST_FEED_COLUMNS).eq("id", postId).single();
+  if (!error) return { row: data, error: null };
+
+  const legacy = await supabase.from("post_feed").select(LEGACY_POST_FEED_COLUMNS).eq("id", postId).single();
+  return { row: legacy.data, error: legacy.error };
 }
 
 export async function deletePost(postId: string) {
@@ -721,7 +891,7 @@ export async function getComments(postId: string) {
       }
       const { data: relationshipRows } = await supabase
         .from("comments")
-        .select("id,parent_comment_id,user_id,content")
+        .select("id,parent_comment_id,root_comment_id,reply_to_user_id,reply_to_username,user_id,content")
         .eq("post_id", postId);
       const relationshipsById = new Map((relationshipRows ?? []).map((row: any) => [row.id, row]));
       const feedById = new Map((nextRows ?? []).map((row: any) => [row.id, row]));
@@ -732,6 +902,9 @@ export async function getComments(postId: string) {
         return {
           ...row,
           parent_comment_id: parentCommentId,
+          root_comment_id: row.root_comment_id ?? relationship?.root_comment_id ?? parent?.root_comment_id ?? parentCommentId,
+          reply_to_user_id: row.reply_to_user_id ?? relationship?.reply_to_user_id ?? parent?.user_id ?? null,
+          reply_to_username: row.reply_to_username ?? relationship?.reply_to_username ?? parent?.nickname ?? row.parent_nickname ?? null,
           parent_nickname: row.parent_nickname ?? parent?.nickname ?? null,
           replyToComment: parent ? { id: parent.id, content: parent.content } : null,
           replyToUser: parent ? { id: parent.user_id, nickname: parent.nickname ?? row.parent_nickname ?? "" } : null
@@ -809,6 +982,9 @@ export async function createComment(postId: string, content: string, parentComme
     post_id: postId,
     parent_comment_uuid: parentComment?.id ?? null,
     parent_comment_id: parentComment?.id ?? null,
+    root_comment_id: parentComment ? parentComment.root_comment_id ?? parentComment.parent_comment_id ?? parentComment.id : null,
+    reply_to_user_id: parentComment?.user_id ?? null,
+    reply_to_username: parentComment?.nickname ?? null,
     parent_nickname: parentComment?.nickname ?? null,
     replyToComment: parentComment ? { id: parentComment.id, content: parentComment.content } : null,
     replyToUser: parentComment ? { id: parentComment.user_id, nickname: parentComment.nickname } : null,
@@ -825,6 +1001,34 @@ export async function createComment(postId: string, content: string, parentComme
   writeJson(POSTS_KEY, posts);
   saveUser({ ...user, exp: user.exp + 1 });
   return comment;
+}
+
+export async function deleteComment(commentId: string) {
+  const user = getCurrentUser();
+  if (!user) throw new Error("PROFILE_SESSION_REQUIRED");
+
+  if (isSupabaseBrowserConfigured() && !commentId.startsWith("mock-")) {
+    const sessionToken = getSessionToken();
+    if (!sessionToken) throw new Error("PROFILE_SESSION_REQUIRED");
+    const supabase = createSupabaseBrowserClient();
+    const { data, error } = await supabase.rpc("delete_comment", {
+      session_token: sessionToken,
+      comment_uuid: commentId
+    });
+    if (error) throw new Error(getErrorMessage(error));
+    return data as { comment_id: string; deleted_count: number };
+  }
+
+  const comments = readJson<LocalComment[]>(COMMENTS_KEY, []);
+  if (!comments.some((comment) => comment.id === commentId)) throw new Error("COMMENT_DELETED");
+  const nextComments = removeCommentBranch(comments, commentId);
+  const deletedCount = comments.length - nextComments.length;
+  const target = comments.find((comment) => comment.id === commentId)!;
+  writeJson(COMMENTS_KEY, nextComments);
+  writeJson(POSTS_KEY, seedPosts().map((post) => (
+    post.id === target.post_id ? { ...post, comment_count: Math.max(0, post.comment_count - deletedCount) } : post
+  )));
+  return { comment_id: commentId, deleted_count: deletedCount };
 }
 
 function getErrorMessage(error: unknown) {

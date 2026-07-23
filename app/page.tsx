@@ -9,7 +9,7 @@ import { FeedSkeleton } from "@/components/skeleton";
 import { LocalPostCard } from "@/components/local-post-card";
 import { Toast } from "@/components/toast";
 import { useI18n } from "@/lib/i18n";
-import { getCurrentUser, getCurrentUserId, getFavorites, getPosts, isFavorite, likePost, LocalPost, subscribeToPostFeed, toggleFavorite } from "@/lib/storage";
+import { getCurrentUser, getCurrentUserId, getFavorites, getFollowingIds, getPosts, isFavorite, likePost, LocalPost, subscribeToPostFeed, toggleFavorite } from "@/lib/storage";
 
 const LIKE_LOCK_MS = 500;
 
@@ -18,6 +18,8 @@ export default function HomePage() {
   const loginPrompt = `/login?message=${encodeURIComponent(t("auth.needName"))}`;
   const [posts, setPosts] = useState<LocalPost[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+  const [feedMode, setFeedMode] = useState<"square" | "following">("square");
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [pendingPostIds, setPendingPostIds] = useState<Set<string>>(new Set());
@@ -26,7 +28,9 @@ export default function HomePage() {
   async function refresh() {
     const current = getCurrentUser();
     setUserId(getCurrentUserId(current));
-    setPosts(await getPosts());
+    const [nextPosts, nextFollowingIds] = await Promise.all([getPosts(), getFollowingIds()]);
+    setPosts(nextPosts);
+    setFollowingIds(new Set(nextFollowingIds));
     setFavoriteIds(new Set(getFavorites().map((favorite) => favorite.post_id)));
     setLoading(false);
   }
@@ -48,6 +52,7 @@ export default function HomePage() {
   }, []);
 
   const reactionCount = useMemo(() => posts.reduce((sum, post) => sum + post.reaction_count + post.comment_count, 0), [posts]);
+  const displayedPosts = useMemo(() => feedMode === "square" ? posts : posts.filter((post) => followingIds.has(post.user_id)), [feedMode, followingIds, posts]);
 
   async function handleLike(postId: string, reaction = "like") {
     const currentUserId = getCurrentUser()?.guest_user_id;
@@ -120,17 +125,27 @@ export default function HomePage() {
         </div>
       </section>
 
+      <div className="grid grid-cols-2 gap-2 rounded-card border border-line bg-white/[0.025] p-1">
+        <button aria-pressed={feedMode === "square"} className={`app-button ${feedMode === "square" ? "bg-acid text-ink" : "text-muted"}`} onClick={() => setFeedMode("square")} type="button">{t("follow.square")}</button>
+        <button aria-pressed={feedMode === "following"} className={`app-button ${feedMode === "following" ? "bg-acid text-ink" : "text-muted"}`} onClick={() => setFeedMode("following")} type="button">{t("follow.feed")}</button>
+      </div>
+
       {loading ? (
         <FeedSkeleton />
       ) : (
         <div className="space-y-4">
-          {posts.map((post, index) => (
+          {feedMode === "following" && !userId ? <Link className="glass block rounded-card p-8 text-center text-meta text-muted" href={loginPrompt}>{t("auth.needName")}</Link> : null}
+          {feedMode === "following" && userId && displayedPosts.length === 0 ? (
+            <button className="glass w-full rounded-card p-8 text-center text-meta text-muted" onClick={() => setFeedMode("square")} type="button">{t("follow.empty")}</button>
+          ) : null}
+          {displayedPosts.map((post, index) => (
             <LocalPostCard
               disabled={pendingPostIds.has(post.id)}
               favorited={favoriteIds.has(post.id) || isFavorite(post.id)}
               index={index}
               key={post.id}
               liked={Boolean(userId && post.liked_by.includes(userId))}
+              followed={feedMode === "square" && followingIds.has(post.user_id)}
               onFavorite={() => handleFavorite(post.id)}
               onLike={() => handleLike(post.id)}
               onEmotion={(reaction) => handleLike(post.id, reaction)}
