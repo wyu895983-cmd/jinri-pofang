@@ -56,9 +56,10 @@ export function AppEntryGate() {
 
   return (
     <AnimatePresence>
-      {showSplash ? <SplashScreen /> : null}
+      {showSplash ? <SplashScreen key="splash" /> : null}
       {!showSplash && showWelcome ? (
         <motion.div
+          key="welcome"
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 px-5 backdrop-blur-xl"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
