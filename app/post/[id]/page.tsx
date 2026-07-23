@@ -60,6 +60,7 @@ export default function PostDetailPage() {
   const [toast, setToast] = useState("");
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
+  const refreshRequestRef = useRef(0);
   const commentFormRef = useRef<HTMLFormElement>(null);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -87,11 +88,13 @@ export default function PostDetailPage() {
 
   async function refresh() {
     if (deletingRef.current) return;
+    const requestId = ++refreshRequestRef.current;
     const current = getCurrentUser();
     setUserId(getCurrentUserId(current));
     setCurrentUser(current);
     setCommentsLoading(true);
     const [nextPost, nextComments] = await Promise.all([getPost(params.id), getComments(params.id)]);
+    if (requestId !== refreshRequestRef.current || deletingRef.current) return;
     setPost(nextPost);
     setComments(nextComments);
     setFavorited(isFavorite(params.id));
@@ -257,6 +260,7 @@ export default function PostDetailPage() {
     setDeletingCommentIds((value) => new Set(value).add(comment.id));
     try {
       await deleteComment(comment.id);
+      refreshRequestRef.current += 1;
       setComments((value) => removeCommentBranch(value, comment.id));
       setPost((value) => value ? { ...value, comment_count: Math.max(0, value.comment_count - deletedCount) } : value);
       if (replyTarget && (replyTarget.id === comment.id || replyTarget.root_comment_id === comment.id)) setReplyTarget(null);
