@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizePostAuthor, type PostAuthor } from "@/components/post-author";
 import { HOME_COPY_POOL } from "@/lib/copy-pool";
 import { createAiAvatarFallback, pickAiColdStartPosts } from "@/lib/ai-bots";
 import { removeCommentBranch } from "@/lib/comment-thread";
@@ -34,6 +35,7 @@ export type LocalPost = {
   userId?: string;
   nickname: string;
   avatar_url: string;
+  author: PostAuthor;
   content: string;
   sticker_id?: string | null;
   reaction_count: number;
@@ -91,7 +93,7 @@ const LANGUAGE_KEY = "jinri-pofang:language";
 const SESSION_TOKEN_KEY = "jinri-pofang:session-token";
 export const DEFAULT_AVATARS = ["/avatars/avatar1.webp", "/avatars/avatar2.webp", "/avatars/avatar3.webp", "/avatars/avatar4.webp"];
 const RANDOM_NICKNAMES = ["今日路过", "普通破防人", "地铁发呆员", "还能再撑会儿", "怨气待机中", "先笑一下"];
-const POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,ai_display_label,ai_persona_type";
+const POST_COLUMNS = "id,user_id,content,sticker_id,reaction_count,comment_count,created_at,updated_at,is_ai_post,ai_bot_id,profiles(id,nickname,avatar_url),ai_bots(id,display_name,avatar_url,display_label)";
 const LEGACY_POST_FEED_COLUMNS = "id,user_id,nickname,avatar_url,content,sticker_id,reaction_count,comment_count,created_at,updated_at";
 const COMMENT_FEED_COLUMNS = "id,post_id,parent_comment_id,parent_nickname,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at,root_comment_id,reply_to_user_id,reply_to_username";
 const LEGACY_COMMENT_FEED_COLUMNS = "id,post_id,user_id,nickname,avatar_url,content,sticker_id,like_count,created_at,updated_at";
@@ -180,13 +182,25 @@ function toPost(row: any, likedBy: string[] = []): LocalPost {
   const current = getCurrentUser();
   const postUserId = row.user_id ?? row.author_id ?? row.userId ?? "";
   const isCurrentUserPost = getCurrentUserId(current) === postUserId;
-  const nickname = isCurrentUserPost && current ? current.nickname : row.nickname;
-  const avatar = isCurrentUserPost && current ? current.avatar_url : row.avatar_url ?? DEFAULT_AVATARS[0];
+  const aiBot = Array.isArray(row.ai_bots) ? row.ai_bots[0] : row.ai_bots;
+  const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  const isAiPost = Boolean(row.is_ai_post);
+  const humanNickname = isCurrentUserPost && current ? current.nickname : row.nickname ?? profile?.nickname ?? "匿名路过";
+  const humanAvatar = isCurrentUserPost && current ? current.avatar_url : row.avatar_url ?? profile?.avatar_url ?? DEFAULT_AVATARS[0];
+  const author = normalizePostAuthor({
+    userId: postUserId,
+    isAi: isAiPost,
+    profile: { id: profile?.id ?? postUserId, nickname: humanNickname, avatarUrl: humanAvatar },
+    aiBot: aiBot
+      ? { id: aiBot.id, displayName: aiBot.display_name, avatarUrl: aiBot.avatar_url, displayLabel: aiBot.display_label }
+      : null
+  });
   return {
     id: row.id,
     user_id: postUserId,
-    nickname,
-    avatar_url: avatar,
+    nickname: author.displayName,
+    avatar_url: author.avatarUrl,
+    author,
     content: row.content,
     sticker_id: row.sticker_id,
     reaction_count: Number(row.reaction_count ?? 0),
@@ -194,10 +208,10 @@ function toPost(row: any, likedBy: string[] = []): LocalPost {
     liked_by: likedBy,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    is_ai_post: Boolean(row.is_ai_post),
+    is_ai_post: isAiPost,
     ai_bot_id: row.ai_bot_id ?? null,
-    ai_display_label: row.ai_display_label ?? null,
-    ai_persona_type: row.ai_persona_type ?? null
+    ai_display_label: author.aiLabel,
+    ai_persona_type: row.ai_persona_type ?? aiBot?.persona_type ?? null
   };
 }
 
@@ -231,13 +245,43 @@ function toComment(row: any, likedBy: string[] = []): LocalComment {
 
 function seedPosts(): LocalPost[] {
   const existing = readJson<LocalPost[] | null>(POSTS_KEY, null);
-  if (existing) return existing;
+  if (existing) {
+    return existing.map((post) =>
+      post.author
+        ? post
+        : {
+            ...post,
+            author: normalizePostAuthor({
+              userId: post.ai_bot_id ?? post.user_id,
+              isAi: Boolean(post.is_ai_post),
+              profile: { id: post.user_id, nickname: post.nickname, avatarUrl: post.avatar_url },
+              aiBot: post.is_ai_post
+                ? {
+                    id: post.ai_bot_id ?? post.user_id,
+                    displayName: post.nickname,
+                    avatarUrl: post.avatar_url,
+                    displayLabel: post.ai_display_label
+                  }
+                : null
+            })
+          }
+    );
+  }
 
   const mockPosts: LocalPost[] = HOME_COPY_POOL.map((content, index) => ({
     id: `mock-${index + 1}`,
     user_id: `mock-user-${index % mockNicknames.length}`,
     nickname: mockNicknames[index % mockNicknames.length],
     avatar_url: DEFAULT_AVATARS[index % DEFAULT_AVATARS.length],
+    author: normalizePostAuthor({
+      userId: `mock-user-${index % mockNicknames.length}`,
+      isAi: false,
+      profile: {
+        id: `mock-user-${index % mockNicknames.length}`,
+        nickname: mockNicknames[index % mockNicknames.length],
+        avatarUrl: DEFAULT_AVATARS[index % DEFAULT_AVATARS.length]
+      }
+    }),
     content,
     reaction_count: 8 + ((index * 13) % 180),
     comment_count: (index * 5) % 22,
@@ -251,6 +295,16 @@ function seedPosts(): LocalPost[] {
     user_id: post.botId,
     nickname: post.bot.displayName,
     avatar_url: post.bot.avatarUrl || createAiAvatarFallback(post.bot),
+    author: normalizePostAuthor({
+      userId: post.botId,
+      isAi: true,
+      aiBot: {
+        id: post.botId,
+        displayName: post.bot.displayName,
+        avatarUrl: post.bot.avatarUrl || createAiAvatarFallback(post.bot),
+        displayLabel: post.bot.displayLabel
+      }
+    }),
     content: post.content,
     reaction_count: 2 + ((index * 7) % 18),
     comment_count: 0,
@@ -718,7 +772,7 @@ export async function getPosts() {
     try {
       const supabase = createSupabaseBrowserClient();
       const [{ rows, error }, { data: reactions }] = await Promise.all([
-        fetchPostFeedRows(supabase),
+        fetchPostRows(supabase),
         user
           ? supabase.from("reactions").select("post_id").eq("user_id", user.guest_user_id).not("post_id", "is", null)
           : Promise.resolve({ data: [] })
@@ -741,7 +795,7 @@ export async function getPost(postId: string) {
     try {
       const supabase = createSupabaseBrowserClient();
       const [{ row, error }, { data: reactions }] = await Promise.all([
-        fetchPostFeedRow(supabase, postId),
+        fetchPostRow(supabase, postId),
         user
           ? supabase.from("reactions").select("post_id").eq("user_id", user.guest_user_id).eq("post_id", postId).limit(1)
           : Promise.resolve({ data: [] })
@@ -780,6 +834,11 @@ export async function createPost(content: string) {
     user_id: user.guest_user_id,
     nickname: user.nickname,
     avatar_url: user.avatar_url,
+    author: normalizePostAuthor({
+      userId: user.guest_user_id,
+      isAi: false,
+      profile: { id: user.guest_user_id, nickname: user.nickname, avatarUrl: user.avatar_url }
+    }),
     content: content.trim(),
     reaction_count: 0,
     comment_count: 0,
@@ -792,16 +851,16 @@ export async function createPost(content: string) {
   return post;
 }
 
-async function fetchPostFeedRows(supabase: ReturnType<typeof createSupabaseBrowserClient>) {
-  const { data, error } = await supabase.from("post_feed").select(POST_FEED_COLUMNS).order("created_at", { ascending: false }).limit(80);
+async function fetchPostRows(supabase: ReturnType<typeof createSupabaseBrowserClient>) {
+  const { data, error } = await supabase.from("posts").select(POST_COLUMNS).order("created_at", { ascending: false }).limit(80);
   if (!error) return { rows: data ?? [], error: null };
 
   const legacy = await supabase.from("post_feed").select(LEGACY_POST_FEED_COLUMNS).order("created_at", { ascending: false }).limit(80);
   return { rows: legacy.data ?? [], error: legacy.error };
 }
 
-async function fetchPostFeedRow(supabase: ReturnType<typeof createSupabaseBrowserClient>, postId: string) {
-  const { data, error } = await supabase.from("post_feed").select(POST_FEED_COLUMNS).eq("id", postId).single();
+async function fetchPostRow(supabase: ReturnType<typeof createSupabaseBrowserClient>, postId: string) {
+  const { data, error } = await supabase.from("posts").select(POST_COLUMNS).eq("id", postId).single();
   if (!error) return { row: data, error: null };
 
   const legacy = await supabase.from("post_feed").select(LEGACY_POST_FEED_COLUMNS).eq("id", postId).single();
@@ -1067,29 +1126,26 @@ export async function likeComment(commentId: string) {
 }
 
 export async function getLeaderboard() {
+  const posts = await getPosts();
+  let topUsers: LocalUser[] = [];
+
   if (isSupabaseBrowserConfigured()) {
     try {
       const supabase = createSupabaseBrowserClient();
-      const [{ data: liked }, { data: commented }, { data: users }] = await Promise.all([
-        supabase.from("post_feed").select(POST_FEED_COLUMNS).order("reaction_count", { ascending: false }).limit(5),
-        supabase.from("post_feed").select(POST_FEED_COLUMNS).order("comment_count", { ascending: false }).limit(5),
-        supabase.from("profiles").select(PROFILE_COLUMNS).order("exp", { ascending: false }).limit(10)
-      ]);
-      return {
-        topLiked: (liked ?? []).map((row: any) => toPost(row)),
-        topCommented: (commented ?? []).map((row: any) => toPost(row)),
-        topUsers: (users ?? []).map((row: any) => toUser(row))
-      };
+      const { data: users } = await supabase.from("profiles").select(PROFILE_COLUMNS).order("exp", { ascending: false }).limit(10);
+      topUsers = (users ?? []).map((row: any) => toUser(row));
     } catch {
-      // fall through
+      topUsers = [];
     }
+  } else {
+    const user = getCurrentUser();
+    topUsers = user ? [user] : [];
   }
-  const posts = await getPosts();
-  const user = getCurrentUser();
+
   return {
     topLiked: [...posts].sort((a, b) => b.reaction_count - a.reaction_count).slice(0, 5),
     topCommented: [...posts].sort((a, b) => b.comment_count - a.comment_count).slice(0, 5),
-    topUsers: user ? [user] : []
+    topUsers
   };
 }
 

@@ -2,16 +2,18 @@ import aiBotsData from "@/lib/ai-bots-data.json";
 
 export type AiPersonaType = "worker" | "student" | "life";
 
+export type AiTemplate = { content: string; patternKey: string };
+
 export type AiBot = {
   id: string;
   displayName: string;
   avatarUrl: string;
   personaType: AiPersonaType;
   personaDesc: string;
-  displayLabel: "AI吐槽员" | "PoPo分身";
+  displayLabel: "AI 吐槽员" | "PoPo 分身";
   tone: string;
   topics: string[];
-  templates: string[];
+  templates: AiTemplate[];
 };
 
 export type GeneratedAiPost = {
@@ -21,36 +23,7 @@ export type GeneratedAiPost = {
   createdAt: string;
 };
 
-export type AiPostingConfig = {
-  enabled: boolean;
-  minDailyPosts: number;
-  maxDailyPosts: number;
-  minBotsPerRun: number;
-  maxBotsPerRun: number;
-  maxPostsPerBotPerDay: number;
-  minHoursBetweenBotPosts: number;
-  reduceWhenRealPostsAtLeast: number;
-  timeWindows: Array<{ start: string; end: string }>;
-};
-
 export const AI_BOTS = aiBotsData as AiBot[];
-
-export const DEFAULT_AI_POSTING_CONFIG: AiPostingConfig = {
-  enabled: true,
-  minDailyPosts: 8,
-  maxDailyPosts: 15,
-  minBotsPerRun: 3,
-  maxBotsPerRun: 6,
-  maxPostsPerBotPerDay: 2,
-  minHoursBetweenBotPosts: 4,
-  reduceWhenRealPostsAtLeast: 20,
-  timeWindows: [
-    { start: "08:00", end: "10:00" },
-    { start: "12:00", end: "14:00" },
-    { start: "17:30", end: "19:30" },
-    { start: "22:00", end: "01:00" }
-  ]
-};
 
 export function isAiAutoPostingEnabled() {
   return process.env.NEXT_PUBLIC_AI_AUTO_POSTING_ENABLED !== "false";
@@ -62,9 +35,9 @@ export function getAiBot(botId: string) {
 
 export function generateAiPost(bot: AiBot, usedContents: string[] = [], now = new Date()): GeneratedAiPost {
   const used = new Set(usedContents);
-  const candidates = bot.templates.filter((template) => !used.has(template));
+  const candidates = bot.templates.filter((template) => !used.has(template.content));
   const pool = candidates.length ? candidates : bot.templates;
-  const content = pool[Math.floor(Math.random() * pool.length)] ?? bot.templates[0];
+  const content = (pool[Math.floor(Math.random() * pool.length)] ?? bot.templates[0])?.content ?? "今天也有一点想吐槽。";
 
   return {
     botId: bot.id,
@@ -89,22 +62,18 @@ export function pickAiColdStartPosts(options: { existingRealPostCount: number; u
   if (!isAiAutoPostingEnabled()) return [];
 
   const now = options.now ?? new Date();
-  const targetCount =
-    options.existingRealPostCount >= DEFAULT_AI_POSTING_CONFIG.reduceWhenRealPostsAtLeast
-      ? DEFAULT_AI_POSTING_CONFIG.minBotsPerRun
-      : randomInt(DEFAULT_AI_POSTING_CONFIG.minDailyPosts, DEFAULT_AI_POSTING_CONFIG.maxDailyPosts);
-  const bots = shuffle(AI_BOTS).slice(0, randomInt(DEFAULT_AI_POSTING_CONFIG.minBotsPerRun, DEFAULT_AI_POSTING_CONFIG.maxBotsPerRun));
+  const targetCount = options.existingRealPostCount >= 20 ? 3 : 8 + Math.floor(Math.random() * 8);
+  const bots = shuffle(AI_BOTS).slice(0, 3 + Math.floor(Math.random() * 4));
   const perBotCount = new Map<string, number>();
   const usedContents = [...(options.usedContents ?? [])];
   const posts: Array<GeneratedAiPost & { bot: AiBot }> = [];
 
   while (posts.length < targetCount) {
-    const availableBots = bots.filter((bot) => (perBotCount.get(bot.id) ?? 0) < DEFAULT_AI_POSTING_CONFIG.maxPostsPerBotPerDay);
+    const availableBots = bots.filter((bot) => (perBotCount.get(bot.id) ?? 0) < 2);
     if (!availableBots.length) break;
 
     const bot = availableBots[posts.length % availableBots.length];
-    const scheduledAt = withRandomPostingTime(now, posts.length);
-    const generated = generateAiPost(bot, usedContents, scheduledAt);
+    const generated = generateAiPost(bot, usedContents, withRandomPostingTime(now, posts.length));
     usedContents.push(generated.content);
     perBotCount.set(bot.id, (perBotCount.get(bot.id) ?? 0) + 1);
     posts.push({ ...generated, bot });
@@ -114,29 +83,18 @@ export function pickAiColdStartPosts(options: { existingRealPostCount: number; u
 }
 
 function withRandomPostingTime(base: Date, index: number) {
-  const window = DEFAULT_AI_POSTING_CONFIG.timeWindows[index % DEFAULT_AI_POSTING_CONFIG.timeWindows.length];
-  const minutes = randomMinuteInWindow(window.start, window.end);
+  const windows = [
+    [8 * 60, 10 * 60],
+    [12 * 60, 14 * 60],
+    [17 * 60 + 30, 19 * 60 + 30],
+    [22 * 60, 25 * 60]
+  ];
+  const [start, end] = windows[index % windows.length];
+  const minutes = start + Math.floor(Math.random() * (end - start));
   const date = new Date(base);
-  date.setHours(Math.floor(minutes / 60), minutes % 60, Math.floor(Math.random() * 50), 0);
+  date.setHours(Math.floor(minutes / 60) % 24, minutes % 60, Math.floor(Math.random() * 50), 0);
   if (date.getTime() > base.getTime()) date.setDate(date.getDate() - 1);
   return date;
-}
-
-function randomMinuteInWindow(start: string, end: string) {
-  const startMinute = toMinute(start);
-  let endMinute = toMinute(end);
-  if (endMinute <= startMinute) endMinute += 24 * 60;
-  const minute = randomInt(startMinute, endMinute - 1);
-  return minute % (24 * 60);
-}
-
-function toMinute(value: string) {
-  const [hour, minute] = value.split(":").map(Number);
-  return hour * 60 + minute;
-}
-
-function randomInt(min: number, max: number) {
-  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 function shuffle<T>(items: readonly T[]) {
